@@ -34,6 +34,7 @@ interface UseYouTubePlayerOptions {
     canControl: boolean;
     latency: number;
     serverTimeOffset: number;
+    manualOffset?: number;
     initialVideoId?: string | null;
     initialVideoTitle?: string | null;
 }
@@ -61,6 +62,7 @@ export function useYouTubePlayer({
     canControl,
     latency,
     serverTimeOffset,
+    manualOffset = 0,
     initialVideoId,
     initialVideoTitle,
 }: UseYouTubePlayerOptions): UseYouTubePlayerReturn {
@@ -83,12 +85,14 @@ export function useYouTubePlayer({
     const playingRef = useRef(playing);
     const videoIdRef = useRef(videoId);
     const serverTimeOffsetRef = useRef(serverTimeOffset);
+    const manualOffsetRef = useRef(manualOffset);
 
     // Keep refs in sync with state
     useEffect(() => { isHostRef.current = isHost; }, [isHost]);
     useEffect(() => { canControlRef.current = canControl; }, [canControl]);
     useEffect(() => { latencyRef.current = latency; }, [latency]);
     useEffect(() => { serverTimeOffsetRef.current = serverTimeOffset; }, [serverTimeOffset]);
+    useEffect(() => { manualOffsetRef.current = manualOffset; }, [manualOffset]);
     useEffect(() => { roomIdRef.current = roomId; }, [roomId]);
     useEffect(() => { syncStatusRef.current = syncStatus; }, [syncStatus]);
     useEffect(() => { playingRef.current = playing; }, [playing]);
@@ -286,7 +290,7 @@ export function useYouTubePlayer({
             // independent of local system clock inaccuracies.
             const localEventTime = timestamp + serverTimeOffsetRef.current;
             const elapsed = Math.max(0, (Date.now() - localEventTime) / 1000);
-            const adjustedServerTime = serverTime + elapsed;
+            const adjustedServerTime = serverTime + elapsed + manualOffsetRef.current;
 
             const clientTime = playerRef.current.getCurrentTime();
             const diff = Math.abs(clientTime - adjustedServerTime);
@@ -344,7 +348,7 @@ export function useYouTubePlayer({
             // Compensate for latency using serverTimeOffset
             const localEventTime = timestamp + serverTimeOffsetRef.current;
             const elapsed = Math.max(0, (Date.now() - localEventTime) / 1000);
-            const adjustedTime = serverTime + elapsed;
+            const adjustedTime = serverTime + elapsed + manualOffsetRef.current;
             
             const currentTime = playerRef.current.getCurrentTime();
             // Seek if we are out of sync by more than 50ms
@@ -380,7 +384,7 @@ export function useYouTubePlayer({
 
             const localEventTime = timestamp + serverTimeOffsetRef.current;
             const elapsed = Math.max(0, (Date.now() - localEventTime) / 1000);
-            const adjustedTime = serverTime + elapsed;
+            const adjustedTime = serverTime + elapsed + manualOffsetRef.current;
             playerRef.current.seekTo(adjustedTime, true);
             setSyncStatus('syncing');
         };
@@ -433,7 +437,7 @@ export function useYouTubePlayer({
 
                 const localEventTime = syncState.serverTime + serverTimeOffsetRef.current;
                 const elapsed = Math.max(0, (Date.now() - localEventTime) / 1000);
-                const adjustedTime = syncState.currentTime + elapsed;
+                const adjustedTime = syncState.currentTime + elapsed + manualOffsetRef.current;
 
                 playerRef.current.loadVideoById(syncState.videoId!);
 

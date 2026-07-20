@@ -48,6 +48,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({
 }) => {
     const [audioOnly, setAudioOnly] = React.useState(false);
     const [isPiP, setIsPiP] = React.useState(false);
+    const [manualOffsetMs, setManualOffsetMs] = React.useState(0);
 
     const canControl = isHost || (room.controllers && room.controllers.includes(currentUserId));
 
@@ -72,6 +73,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({
         canControl,
         latency,
         serverTimeOffset,
+        manualOffset: manualOffsetMs / 1000,
         initialVideoId: room.videoId,
         initialVideoTitle: room.videoTitle,
     });
@@ -310,6 +312,20 @@ export const RoomPage: React.FC<RoomPageProps> = ({
                                     color={isHost ? 'text-yellow-600' : canControl ? 'text-secondary-600' : 'text-primary-600'}
                                 />
                             </div>
+                            
+                            {!isHost && (
+                                <div className="mt-3 pt-3 border-t border-slate-100">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-slate-500 text-xs font-medium">Fine Tune Audio</span>
+                                        <span className="text-xs font-semibold text-slate-700">{manualOffsetMs > 0 ? '+' : ''}{manualOffsetMs}ms</span>
+                                    </div>
+                                    <div className="flex gap-1.5">
+                                        <button onClick={() => setManualOffsetMs(m => m - 20)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-1.5 rounded transition-colors">-20ms</button>
+                                        <button onClick={() => setManualOffsetMs(0)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-2.5 rounded transition-colors" title="Reset">⟲</button>
+                                        <button onClick={() => setManualOffsetMs(m => m + 20)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-1.5 rounded transition-colors">+20ms</button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Chat Box */}
