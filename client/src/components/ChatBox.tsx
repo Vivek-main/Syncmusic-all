@@ -12,10 +12,13 @@ interface ChatBoxProps {
 
 export const ChatBox: React.FC<ChatBoxProps> = ({ socket, roomId, chatHistory, username }) => {
     const [message, setMessage] = useState('');
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (scrollContainerRef.current) {
+            // Use scrollTop to prevent scrolling the entire page, only the chat container
+            scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+        }
     };
 
     useEffect(() => {
@@ -37,7 +40,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ socket, roomId, chatHistory, u
                 <h3 className="text-white font-semibold">Room Chat</h3>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                 {chatHistory.length === 0 ? (
                     <div className="h-full flex items-center justify-center text-slate-500 text-sm text-center px-4">
                         Say hello to the room! 👋
@@ -52,7 +55,6 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ socket, roomId, chatHistory, u
                         </div>
                     ))
                 )}
-                <div ref={messagesEndRef} />
             </div>
 
             <form onSubmit={handleSend} className="p-3 border-t border-white/5 flex gap-2">

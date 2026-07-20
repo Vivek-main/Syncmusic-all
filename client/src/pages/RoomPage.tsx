@@ -3,7 +3,7 @@
  * Main room view with YouTube player and all controls
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Room, SyncStatus, ConnectionStatus } from '@/types';
 import { Socket } from 'socket.io-client';
 import { YouTubePlayer } from '@/components/YouTubePlayer';

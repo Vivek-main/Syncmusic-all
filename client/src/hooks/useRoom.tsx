@@ -13,6 +13,8 @@ import {
     HostChangedEvent,
     UserJoinedEvent,
     UserLeftEvent,
+    ChatMessage,
+    QueueItem,
 } from '@/types';
 
 interface UseRoomOptions {
@@ -137,6 +139,19 @@ export function useRoom({ socket, onRoomJoined, onError }: UseRoomOptions): UseR
             setRoom((prev) => prev ? { ...prev, controllers } : prev);
         };
 
+        const handleChatMessage = (message: ChatMessage) => {
+            setRoom((prev) => {
+                if (!prev) return prev;
+                const newChat = [...(prev.chat || []), message];
+                if (newChat.length > 50) newChat.shift();
+                return { ...prev, chat: newChat };
+            });
+        };
+
+        const handleQueueUpdated = ({ queue }: { queue: QueueItem[] }) => {
+            setRoom((prev) => prev ? { ...prev, queue } : prev);
+        };
+
         const handleError = ({ message }: { message: string }) => {
             setIsLoading(false);
             if (message === 'Room not found') {
@@ -153,6 +168,8 @@ export function useRoom({ socket, onRoomJoined, onError }: UseRoomOptions): UseR
         socket.on('host-changed', handleHostChanged);
         socket.on('users-updated', handleUsersUpdated);
         socket.on('access-updated', handleAccessUpdated);
+        socket.on('chat-message', handleChatMessage);
+        socket.on('queue-updated', handleQueueUpdated);
         socket.on('left-room', handleLeftRoom);
         socket.on('error', handleError);
 
@@ -164,6 +181,8 @@ export function useRoom({ socket, onRoomJoined, onError }: UseRoomOptions): UseR
             socket.off('host-changed', handleHostChanged);
             socket.off('users-updated', handleUsersUpdated);
             socket.off('access-updated', handleAccessUpdated);
+            socket.off('chat-message', handleChatMessage);
+            socket.off('queue-updated', handleQueueUpdated);
             socket.off('left-room', handleLeftRoom);
             socket.off('error', handleError);
         };
