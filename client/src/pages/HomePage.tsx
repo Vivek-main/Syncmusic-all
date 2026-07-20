@@ -4,7 +4,6 @@
  */
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Music, RefreshCw, Users, Smartphone, Zap, Rocket, Target } from 'lucide-react';
 

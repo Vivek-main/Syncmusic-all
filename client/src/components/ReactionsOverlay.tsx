@@ -17,7 +17,7 @@ export const ReactionsOverlay: React.FC<ReactionsOverlayProps> = ({ socket }) =>
     useEffect(() => {
         if (!socket) return;
 
-        const handleReaction = ({ emoji, userId }: { emoji: string; userId: string; timestamp: number }) => {
+        const handleReaction = ({ emoji }: { emoji: string; userId: string; timestamp: number }) => {
             const newReaction = {
                 id: `${Date.now()}-${Math.random()}`,
                 emoji,

@@ -13,7 +13,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
-import { RefreshCw } from 'lucide-react';
 import { loadYouTubeAPI } from '@/services/youtube';
 import { PlaybackEvent, SyncState, SyncStatus, YouTubePlayerInstance, YTPlayerState } from '@/types';
 

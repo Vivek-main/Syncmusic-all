@@ -6,7 +6,7 @@
 import React from 'react';
 import { RoomUser } from '@/types';
 import { cn } from '@/utils/cn';
-import { Users, Crown, SlidersHorizontal } from 'lucide-react';
+import { Users, Crown } from 'lucide-react';
 
 interface UserListProps {
     users: RoomUser[];
