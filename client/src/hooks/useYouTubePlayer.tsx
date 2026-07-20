@@ -130,9 +130,19 @@ export function useYouTubePlayer({
                         onError: (event) => {
                             console.error('[YouTube] Player error:', event.data);
                             if (event.data === 101 || event.data === 150) {
-                                toast.error('This video does not allow embedding. Please try a different video.');
+                                toast.error('This video does not allow embedding. Skipping to next...');
+                                if (isHostRef.current) {
+                                    setTimeout(() => {
+                                        socket?.emit('play-next', { roomId: roomIdRef.current });
+                                    }, 2000); // 2 second delay so users can read the error
+                                }
                             } else {
-                                toast.error('Video error. Please try another URL.');
+                                toast.error('Video playback error. Skipping to next...');
+                                if (isHostRef.current) {
+                                    setTimeout(() => {
+                                        socket?.emit('play-next', { roomId: roomIdRef.current });
+                                    }, 2000);
+                                }
                             }
                         },
                     },

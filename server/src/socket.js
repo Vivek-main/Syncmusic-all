@@ -304,6 +304,55 @@ function initializeSocket(io) {
         });
 
         /**
+         * Host skips to the next video in the queue (or player auto-advances)
+         * Emits: change-video, queue-updated
+         */
+        socket.on('play-next', ({ roomId }) => {
+            const room = roomManager.getRoom(roomId);
+            if (!room || (room.hostId !== socket.id && !room.controllers.has(socket.id))) return;
+
+            if (room.queue.length > 0) {
+                const nextVideo = room.queue.shift(); // Remove first video from queue
+                
+                roomManager.updateRoomState(roomId, {
+                    videoId: nextVideo.videoId,
+                    videoTitle: nextVideo.title,
+                    playing: true,
+                    currentTime: 0,
+                });
+
+                // Broadcast change to everyone
+                io.to(roomId).emit('change-video', {
+                    videoId: nextVideo.videoId,
+                    videoTitle: nextVideo.title,
+                    serverTime: Date.now(),
+                });
+
+                // Force play command
+                io.to(roomId).emit('play', {
+                    currentTime: 0,
+                    serverTime: Date.now(),
+                });
+
+                // Send updated queue
+                io.to(roomId).emit('queue-updated', { queue: room.queue });
+                
+                console.log(`[Sync] Room ${roomId}: Auto-playing NEXT video ${nextVideo.videoId}`);
+            } else {
+                // End of queue
+                roomManager.updateRoomState(roomId, {
+                    playing: false,
+                    currentTime: 0,
+                });
+                io.to(roomId).emit('pause', {
+                    currentTime: 0,
+                    serverTime: Date.now(),
+                });
+                console.log(`[Sync] Room ${roomId}: Reached end of queue`);
+            }
+        });
+
+        /**
          * Client requests current sync state (used for re-sync button)
          * Emits: sync-state (to requesting client only)
          */
