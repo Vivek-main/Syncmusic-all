@@ -269,8 +269,8 @@ export function useYouTubePlayer({
                 playerRef.current.loadVideoById(vId);
             }
 
-            // Account for network latency: add half the RTT
-            const latencyOffset = (latencyRef.current * 2) / 1000;
+            // Account for network latency: latencyRef is already one-way (half RTT) in ms
+            const latencyOffset = latencyRef.current / 1000;
             const elapsed = (Date.now() - timestamp) / 1000;
             const adjustedServerTime = serverTime + elapsed + latencyOffset;
 

@@ -5,9 +5,10 @@ interface VideoInfoProps {
     videoId: string;
     videoTitle: string | null;
     hostUsername: string;
+    children?: React.ReactNode;
 }
 
-export const VideoInfo: React.FC<VideoInfoProps> = ({ videoId, videoTitle, hostUsername }) => {
+export const VideoInfo: React.FC<VideoInfoProps> = ({ videoId, videoTitle, hostUsername, children }) => {
     return (
         <div className="glass-card p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
             <div>
@@ -28,7 +29,7 @@ export const VideoInfo: React.FC<VideoInfoProps> = ({ videoId, videoTitle, hostU
                 </div>
             </div>
             
-            <div className="flex gap-2 shrink-0">
+            <div className="flex flex-wrap gap-2 shrink-0">
                 <button 
                     onClick={() => {
                         navigator.clipboard.writeText(`https://youtube.com/watch?v=${videoId}`);
@@ -37,6 +38,7 @@ export const VideoInfo: React.FC<VideoInfoProps> = ({ videoId, videoTitle, hostU
                 >
                     <Link className="w-3.5 h-3.5" /> Copy Link
                 </button>
+                {children}
             </div>
         </div>
     );

@@ -166,38 +166,35 @@ export const RoomPage: React.FC<RoomPageProps> = ({
 
                         {/* Video Info and Audio Mode Toggle */}
                         {videoId && (
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between glass-card p-4 gap-4">
-                                <VideoInfo
-                                    videoId={videoId}
-                                    videoTitle={videoTitle}
-                                    hostUsername={hostUser?.username || 'Host'}
-                                />
-                                <div className="flex items-center gap-2 w-full sm:w-auto">
-                                    <button
-                                        onClick={() => setIsPiP(!isPiP)}
-                                        className={`flex-1 sm:flex-none px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
-                                            isPiP
-                                                ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                                                : 'bg-dark-600 text-gray-300 hover:bg-dark-500'
-                                        }`}
-                                        title="Mini Player"
-                                    >
-                                        <PictureInPicture2 className="w-4 h-4" />
-                                        <span className="hidden sm:inline">{isPiP ? 'Mini Player: ON' : 'Mini Player'}</span>
-                                    </button>
-                                    <button
-                                        onClick={() => setAudioOnly(!audioOnly)}
-                                        className={`flex-1 sm:flex-none px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
-                                            audioOnly
-                                                ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
-                                                : 'bg-dark-600 text-gray-300 hover:bg-dark-500'
-                                        }`}
-                                    >
-                                        <Headphones className="w-4 h-4" />
-                                        <span className="hidden sm:inline">{audioOnly ? 'Audio Mode: ON' : 'Audio Mode'}</span>
-                                    </button>
-                                </div>
-                            </div>
+                            <VideoInfo
+                                videoId={videoId}
+                                videoTitle={videoTitle}
+                                hostUsername={hostUser?.username || 'Host'}
+                            >
+                                <button
+                                    onClick={() => setIsPiP(!isPiP)}
+                                    className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 text-sm ${
+                                        isPiP
+                                            ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                                            : 'bg-dark-600 text-gray-300 hover:bg-dark-500'
+                                    }`}
+                                    title="Mini Player"
+                                >
+                                    <PictureInPicture2 className="w-4 h-4" />
+                                    <span className="hidden sm:inline">{isPiP ? 'Mini Player: ON' : 'Mini Player'}</span>
+                                </button>
+                                <button
+                                    onClick={() => setAudioOnly(!audioOnly)}
+                                    className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 text-sm ${
+                                        audioOnly
+                                            ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
+                                            : 'bg-dark-600 text-gray-300 hover:bg-dark-500'
+                                    }`}
+                                >
+                                    <Headphones className="w-4 h-4" />
+                                    <span className="hidden sm:inline">{audioOnly ? 'Audio Mode: ON' : 'Audio Mode'}</span>
+                                </button>
+                            </VideoInfo>
                         )}
 
                         {/* Playback Controls */}
