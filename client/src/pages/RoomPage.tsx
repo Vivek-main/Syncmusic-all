@@ -28,6 +28,7 @@ interface RoomPageProps {
     isHost: boolean;
     connectionStatus: ConnectionStatus;
     latency: number;
+    serverTimeOffset: number;
     onLeave: () => void;
     grantControl: (userId: string) => void;
     revokeControl: (userId: string) => void;
@@ -40,6 +41,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({
     isHost,
     connectionStatus,
     latency,
+    serverTimeOffset,
     onLeave,
     grantControl,
     revokeControl,
@@ -69,6 +71,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({
         isHost,
         canControl,
         latency,
+        serverTimeOffset,
         initialVideoId: room.videoId,
         initialVideoTitle: room.videoTitle,
     });

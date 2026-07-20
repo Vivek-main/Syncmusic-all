@@ -33,7 +33,7 @@ function AppContent() {
     const navigate = useNavigate();
     const params = useParams<{ roomId?: string }>();
 
-    const { socket, connectionStatus, latency, isConnected } = useSocket();
+    const { socket, connectionStatus, latency, isConnected, serverTimeOffset } = useSocket();
 
     const handleRoomJoined = useCallback(
         (room: Room) => {
@@ -83,6 +83,7 @@ function AppContent() {
                     isHost={isHost}
                     connectionStatus={connectionStatus}
                     latency={latency}
+                    serverTimeOffset={serverTimeOffset}
                     onLeave={handleLeave}
                     grantControl={grantControl}
                     revokeControl={revokeControl}

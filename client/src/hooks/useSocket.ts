@@ -13,6 +13,7 @@ interface UseSocketReturn {
     connectionStatus: ConnectionStatus;
     latency: number;
     isConnected: boolean;
+    serverTimeOffset: number;
 }
 
 export function useSocket(): UseSocketReturn {
@@ -20,6 +21,8 @@ export function useSocket(): UseSocketReturn {
     const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
     const [latency, setLatency] = useState<number>(0);
     const pingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    const [serverTimeOffset, setServerTimeOffset] = useState<number>(0);
 
     /**
      * Measure round-trip latency using ping/pong
@@ -30,10 +33,19 @@ export function useSocket(): UseSocketReturn {
         const startTime = Date.now();
         socketRef.current.emit('measure-latency', { timestamp: startTime });
 
-        const handler = ({ timestamp }: { timestamp: number }) => {
+        const handler = ({ timestamp, serverTime }: { timestamp: number, serverTime?: number }) => {
             const rtt = Date.now() - timestamp;
             const oneWayLatency = Math.round(rtt / 2);
             setLatency(oneWayLatency);
+
+            if (serverTime) {
+                // Clock offset: how far ahead the local clock is compared to the server
+                // The server sent the event at `serverTime`. We received it `oneWayLatency` later.
+                // So right now, the server's estimated time is `serverTime + oneWayLatency`.
+                const estimatedServerTimeNow = serverTime + oneWayLatency;
+                const offset = Date.now() - estimatedServerTimeNow;
+                setServerTimeOffset(offset);
+            }
 
             // Report latency to server for display in user list
             socketRef.current?.emit('report-latency', { latency: oneWayLatency });
@@ -93,5 +105,6 @@ export function useSocket(): UseSocketReturn {
         connectionStatus,
         latency,
         isConnected: connectionStatus === 'connected',
+        serverTimeOffset,
     };
 }
