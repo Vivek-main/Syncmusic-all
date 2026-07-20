@@ -28,7 +28,7 @@ export function useSocket(): UseSocketReturn {
         if (!socketRef.current?.connected) return;
 
         const startTime = Date.now();
-        socketRef.current.emit('ping', { timestamp: startTime });
+        socketRef.current.emit('measure-latency', { timestamp: startTime });
 
         const handler = ({ timestamp }: { timestamp: number }) => {
             const rtt = Date.now() - timestamp;
@@ -39,7 +39,7 @@ export function useSocket(): UseSocketReturn {
             socketRef.current?.emit('report-latency', { latency: oneWayLatency });
         };
 
-        socketRef.current.once('pong', handler);
+        socketRef.current.once('latency-pong', handler);
     }, []);
 
     useEffect(() => {

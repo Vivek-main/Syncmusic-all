@@ -395,10 +395,10 @@ function initializeSocket(io) {
 
         /**
          * Ping-pong for latency measurement
-         * Client sends ping with timestamp, server echoes back
+         * Client sends measure-latency with timestamp, server echoes back
          */
-        socket.on('ping', ({ timestamp }) => {
-            socket.emit('pong', { timestamp, serverTime: Date.now() });
+        socket.on('measure-latency', ({ timestamp }) => {
+            socket.emit('latency-pong', { timestamp, serverTime: Date.now() });
         });
 
         /**
