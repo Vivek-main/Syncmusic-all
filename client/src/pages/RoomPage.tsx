@@ -12,6 +12,7 @@ import { UserList } from '@/components/UserList';
 import { PlaybackControls } from '@/components/PlaybackControls';
 import { RoomHeader } from '@/components/RoomHeader';
 import { VideoInfo } from '@/components/VideoInfo';
+import { SuggestedVideos } from '@/components/SuggestedVideos';
 import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
 import { Crown, SlidersHorizontal, Headphones, Radio } from 'lucide-react';
 
@@ -40,6 +41,8 @@ export const RoomPage: React.FC<RoomPageProps> = ({
     grantControl,
     revokeControl,
 }) => {
+    const [audioOnly, setAudioOnly] = React.useState(false);
+
     const canControl = isHost || (room.controllers && room.controllers.includes(currentUserId));
 
     const {
@@ -106,15 +109,29 @@ export const RoomPage: React.FC<RoomPageProps> = ({
                             videoId={videoId}
                             syncStatus={syncStatus as SyncStatus}
                             isHost={canControl}
+                            audioOnly={audioOnly}
                         />
 
-                        {/* Video Info */}
+                        {/* Video Info and Audio Mode Toggle */}
                         {videoId && (
-                            <VideoInfo
-                                videoId={videoId}
-                                videoTitle={videoTitle}
-                                hostUsername={hostUser?.username || 'Host'}
-                            />
+                            <div className="flex items-center justify-between glass-card p-4">
+                                <VideoInfo
+                                    videoId={videoId}
+                                    videoTitle={videoTitle}
+                                    hostUsername={hostUser?.username || 'Host'}
+                                />
+                                <button
+                                    onClick={() => setAudioOnly(!audioOnly)}
+                                    className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
+                                        audioOnly
+                                            ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
+                                            : 'bg-dark-600 text-gray-300 hover:bg-dark-500'
+                                    }`}
+                                >
+                                    <Headphones className="w-4 h-4" />
+                                    {audioOnly ? 'Audio Mode: ON' : 'Audio Mode: OFF'}
+                                </button>
+                            </div>
                         )}
 
                         {/* Playback Controls */}
@@ -125,6 +142,14 @@ export const RoomPage: React.FC<RoomPageProps> = ({
                             isHost={canControl}
                             syncStatus={syncStatus}
                             onRequestSync={requestSync}
+                        />
+
+                        {/* Suggested Videos (Only visible to hosts/co-hosts) */}
+                        <SuggestedVideos
+                            currentVideoId={videoId}
+                            currentVideoTitle={videoTitle}
+                            isHost={canControl}
+                            onVideoSelect={handleVideoSelect}
                         />
                     </div>
 

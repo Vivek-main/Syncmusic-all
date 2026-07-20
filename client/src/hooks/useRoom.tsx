@@ -6,7 +6,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
-import React from 'react';
 import { Music, PartyPopper, Hand, Crown } from 'lucide-react';
 import {
     Room,

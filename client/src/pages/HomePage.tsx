@@ -22,7 +22,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     const [username, setUsername] = useState('');
     const [roomId, setRoomId] = useState('');
     const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
-    const navigate = useNavigate();
+    // const navigate = useNavigate(); // unused
 
     // Pre-fill room ID from URL if navigated to /join/:roomId
     React.useEffect(() => {

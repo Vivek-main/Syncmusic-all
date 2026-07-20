@@ -14,16 +14,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
 import { RefreshCw } from 'lucide-react';
-import React from 'react';
 import { loadYouTubeAPI } from '@/services/youtube';
 import { PlaybackEvent, SyncState, SyncStatus, YouTubePlayerInstance, YTPlayerState } from '@/types';
 
 // Sync thresholds
-const HARD_SYNC_THRESHOLD = 2.0;   // Seek if diff > 2 seconds
-const SOFT_SYNC_THRESHOLD = 0.3;   // Adjust speed if diff > 300ms
+const HARD_SYNC_THRESHOLD = 1.0;   // Seek if diff > 1 seconds (tighter)
+const SOFT_SYNC_THRESHOLD = 0.15;  // Adjust speed if diff > 150ms (microsync)
 const SYNC_INTERVAL = 1000;         // Check sync every 1 second
 const HEARTBEAT_INTERVAL = 1000;    // Host sends state every 1 second
-const SPEED_ADJUSTMENT = 1.05;      // Slightly speed up/slow down
+// YouTube only accepts specific playback rates: 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2
+const SPEED_UP_RATE = 1.25;
+const SLOW_DOWN_RATE = 0.75;
 const NORMAL_SPEED = 1.0;
 
 interface UseYouTubePlayerOptions {
@@ -61,6 +62,7 @@ export function useYouTubePlayer({
 }: UseYouTubePlayerOptions): UseYouTubePlayerReturn {
     const playerRef = useRef<YouTubePlayerInstance | null>(null);
     const [playerReady, setPlayerReady] = useState(false);
+    const lastRemoteActionTimeRef = useRef<number>(0);
     const [videoId, setVideoId] = useState<string | null>(initialVideoId || null);
     const [videoTitle, setVideoTitle] = useState<string | null>(initialVideoTitle || null);
     const [playing, setPlaying] = useState(false);
@@ -95,7 +97,7 @@ export function useYouTubePlayer({
                 await loadYouTubeAPI();
                 if (!isMounted) return;
 
-                const player = new window.YT.Player(containerId, {
+                new window.YT.Player(containerId, {
                     height: '100%',
                     width: '100%',
                     playerVars: {
@@ -124,7 +126,11 @@ export function useYouTubePlayer({
                         },
                         onError: (event) => {
                             console.error('[YouTube] Player error:', event.data);
-                            toast.error('Video error. Please try another URL.');
+                            if (event.data === 101 || event.data === 150) {
+                                toast.error('This video does not allow embedding. Please try a different video.');
+                            } else {
+                                toast.error('Video error. Please try another URL.');
+                            }
                         },
                     },
                 });
@@ -158,7 +164,8 @@ export function useYouTubePlayer({
                 case YTPlayerState.PLAYING:
                     setPlaying(true);
                     playingRef.current = true;
-                    if (isCurrentlyControlling) {
+                    // Only emit if this state change wasn't triggered by a recent remote command
+                    if (isCurrentlyControlling && (Date.now() - lastRemoteActionTimeRef.current > 1000)) {
                         socket.emit('play', { roomId: currentRoomId, currentTime: currentVideoTime });
                     }
                     break;
@@ -166,7 +173,7 @@ export function useYouTubePlayer({
                 case YTPlayerState.PAUSED:
                     setPlaying(false);
                     playingRef.current = false;
-                    if (isCurrentlyControlling) {
+                    if (isCurrentlyControlling && (Date.now() - lastRemoteActionTimeRef.current > 1000)) {
                         socket.emit('pause', { roomId: currentRoomId, currentTime: currentVideoTime });
                     }
                     break;
@@ -272,9 +279,9 @@ export function useYouTubePlayer({
             // Soft sync: adjust playback speed
             else if (diff > SOFT_SYNC_THRESHOLD) {
                 if (clientTime < adjustedServerTime) {
-                    playerRef.current.setPlaybackRate?.(SPEED_ADJUSTMENT);
+                    playerRef.current.setPlaybackRate?.(SPEED_UP_RATE);
                 } else {
-                    playerRef.current.setPlaybackRate?.(1 / SPEED_ADJUSTMENT);
+                    playerRef.current.setPlaybackRate?.(SLOW_DOWN_RATE);
                 }
                 setSyncStatus('syncing');
                 console.log(`[Sync] Soft sync: diff=${diff.toFixed(2)}s, adjusting speed`);
@@ -306,6 +313,7 @@ export function useYouTubePlayer({
 
         const handlePlay = ({ currentTime: serverTime, serverTime: timestamp }: PlaybackEvent) => {
             if (!playerRef.current) return;
+            lastRemoteActionTimeRef.current = Date.now();
 
             // Compensate for latency
             const elapsed = (Date.now() - timestamp) / 1000;
@@ -325,6 +333,7 @@ export function useYouTubePlayer({
 
         const handlePause = ({ currentTime: serverTime }: PlaybackEvent) => {
             if (!playerRef.current) return;
+            lastRemoteActionTimeRef.current = Date.now();
 
             playerRef.current.pauseVideo();
             
@@ -340,6 +349,7 @@ export function useYouTubePlayer({
 
         const handleSeek = ({ currentTime: serverTime, serverTime: timestamp }: PlaybackEvent) => {
             if (!playerRef.current) return;
+            lastRemoteActionTimeRef.current = Date.now();
 
             const elapsed = (Date.now() - timestamp) / 1000;
             const adjustedTime = serverTime + elapsed;
@@ -356,10 +366,10 @@ export function useYouTubePlayer({
 
             if (playerRef.current) {
                 playerRef.current.loadVideoById(newVideoId);
-                // Auto-pause to let sync dictate playback
+                // Allow auto-play to occur immediately when video changes
                 setTimeout(() => {
-                    playerRef.current?.pauseVideo();
-                }, 1000);
+                    playerRef.current?.playVideo();
+                }, 200);
             }
         };
 

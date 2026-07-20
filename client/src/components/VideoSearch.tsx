@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { extractVideoId } from '@/services/youtube';
 import { Gamepad2, Search, AlertTriangle, Play } from 'lucide-react';
@@ -27,19 +27,66 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
     const [error, setError] = useState('');
     const [results, setResults] = useState<SearchResult[]>([]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
-        setResults([]);
+    const performSearch = async (searchQuery: string) => {
+        const trimmed = searchQuery.trim();
+        if (!trimmed) {
+            setResults([]);
+            setError('');
+            return;
+        }
 
+        // Don't auto-search if it's a URL (let them press enter to load it)
+        const directVideoId = extractVideoId(trimmed);
+        if (directVideoId) return;
+
+        setIsLoading(true);
+        setError('');
+
+        try {
+            const localBackendUrl = `${window.location.protocol}//${window.location.hostname}:3001`;
+            const API_URL = import.meta.env.VITE_SOCKET_URL || localBackendUrl;
+            const res = await fetch(`${API_URL}/api/search?q=${encodeURIComponent(trimmed)}`);
+            if (!res.ok) throw new Error('Search failed');
+            
+            const data = await res.json();
+            if (data.results && data.results.length > 0) {
+                setResults(data.results);
+            } else {
+                setError('No results found.');
+                setResults([]);
+            }
+        } catch (err) {
+            console.error(err);
+            setError('Failed to search YouTube. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Auto-search as the user types (debounced)
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (query.trim() && !extractVideoId(query.trim())) {
+                performSearch(query);
+            } else if (!query.trim()) {
+                setResults([]);
+                setError('');
+            }
+        }, 500); // 500ms delay after they stop typing
+
+        return () => clearTimeout(timer);
+    }, [query]);
+
+    const handleSubmit = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        setError('');
+        
         const trimmed = query.trim();
         if (!trimmed) return;
 
-        setIsLoading(true);
-
-        // Check if it's a direct URL or video ID
         const directVideoId = extractVideoId(trimmed);
         if (directVideoId) {
+            setIsLoading(true);
             try {
                 // Fetch video title from YouTube oEmbed API
                 const oEmbedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${directVideoId}&format=json`;
@@ -55,6 +102,7 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
                 }
                 onVideoSelect(directVideoId, title);
                 setQuery('');
+                setResults([]);
                 toast.success('Video loaded!', { icon: <Play className="w-4 h-4 text-green-500" /> });
             } catch (err) {
                 toast.error('Failed to load video');
@@ -64,25 +112,8 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
             return;
         }
 
-        // Otherwise, perform a search
-        try {
-            const localBackendUrl = `${window.location.protocol}//${window.location.hostname}:3001`;
-            const API_URL = import.meta.env.VITE_SOCKET_URL || localBackendUrl;
-            const res = await fetch(`${API_URL}/api/search?q=${encodeURIComponent(trimmed)}`);
-            if (!res.ok) throw new Error('Search failed');
-            
-            const data = await res.json();
-            if (data.results && data.results.length > 0) {
-                setResults(data.results);
-            } else {
-                setError('No results found.');
-            }
-        } catch (err) {
-            console.error(err);
-            setError('Failed to search YouTube. Please try again.');
-        } finally {
-            setIsLoading(false);
-        }
+        // If not a URL, explicitly trigger search immediately
+        performSearch(query);
     };
 
     const handleSelectResult = (result: SearchResult) => {

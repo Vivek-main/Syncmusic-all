@@ -4,7 +4,7 @@
  * Manages top-level socket, room, and navigation state
  */
 
-import React, { useEffect, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { BrowserRouter, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useSocket } from '@/hooks/useSocket';
