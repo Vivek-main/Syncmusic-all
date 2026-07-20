@@ -17,7 +17,7 @@ import { VideoQueue } from '@/components/VideoQueue';
 import { ChatBox } from '@/components/ChatBox';
 import { ReactionsOverlay } from '@/components/ReactionsOverlay';
 import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
-import { Crown, SlidersHorizontal, Headphones, Radio } from 'lucide-react';
+import { Crown, SlidersHorizontal, Headphones, Radio, PictureInPicture2, Maximize2 } from 'lucide-react';
 
 const PLAYER_CONTAINER_ID = 'youtube-player';
 
@@ -45,6 +45,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({
     revokeControl,
 }) => {
     const [audioOnly, setAudioOnly] = React.useState(false);
+    const [isPiP, setIsPiP] = React.useState(false);
 
     const canControl = isHost || (room.controllers && room.controllers.includes(currentUserId));
 
@@ -143,34 +144,59 @@ export const RoomPage: React.FC<RoomPageProps> = ({
                             currentVideoId={videoId}
                         />
                         {/* YouTube Player */}
-                        <YouTubePlayer
-                            containerId={PLAYER_CONTAINER_ID}
-                            playerReady={playerReady}
-                            videoId={videoId}
-                            syncStatus={syncStatus as SyncStatus}
-                            isHost={canControl}
-                            audioOnly={audioOnly}
-                        />
+                        <div className={isPiP ? "fixed bottom-4 right-4 w-80 shadow-2xl z-[100] rounded-xl overflow-hidden ring-4 ring-dark-800/50 transition-all hover:scale-105" : "relative transition-all"}>
+                            <YouTubePlayer
+                                containerId={PLAYER_CONTAINER_ID}
+                                playerReady={playerReady}
+                                videoId={videoId}
+                                syncStatus={syncStatus as SyncStatus}
+                                isHost={canControl}
+                                audioOnly={audioOnly && !isPiP} // Force video on if in PiP
+                            />
+                            {isPiP && (
+                                <button 
+                                    onClick={() => setIsPiP(false)} 
+                                    className="absolute top-2 right-2 p-1.5 bg-black/60 text-white hover:bg-black rounded-lg transition-colors z-50 backdrop-blur-sm"
+                                    title="Exit Mini Player"
+                                >
+                                    <Maximize2 className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
 
                         {/* Video Info and Audio Mode Toggle */}
                         {videoId && (
-                            <div className="flex items-center justify-between glass-card p-4">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between glass-card p-4 gap-4">
                                 <VideoInfo
                                     videoId={videoId}
                                     videoTitle={videoTitle}
                                     hostUsername={hostUser?.username || 'Host'}
                                 />
-                                <button
-                                    onClick={() => setAudioOnly(!audioOnly)}
-                                    className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
-                                        audioOnly
-                                            ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
-                                            : 'bg-dark-600 text-gray-300 hover:bg-dark-500'
-                                    }`}
-                                >
-                                    <Headphones className="w-4 h-4" />
-                                    {audioOnly ? 'Audio Mode: ON' : 'Audio Mode: OFF'}
-                                </button>
+                                <div className="flex items-center gap-2 w-full sm:w-auto">
+                                    <button
+                                        onClick={() => setIsPiP(!isPiP)}
+                                        className={`flex-1 sm:flex-none px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+                                            isPiP
+                                                ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                                                : 'bg-dark-600 text-gray-300 hover:bg-dark-500'
+                                        }`}
+                                        title="Mini Player"
+                                    >
+                                        <PictureInPicture2 className="w-4 h-4" />
+                                        <span className="hidden sm:inline">{isPiP ? 'Mini Player: ON' : 'Mini Player'}</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setAudioOnly(!audioOnly)}
+                                        className={`flex-1 sm:flex-none px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+                                            audioOnly
+                                                ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
+                                                : 'bg-dark-600 text-gray-300 hover:bg-dark-500'
+                                        }`}
+                                    >
+                                        <Headphones className="w-4 h-4" />
+                                        <span className="hidden sm:inline">{audioOnly ? 'Audio Mode: ON' : 'Audio Mode'}</span>
+                                    </button>
+                                </div>
                             </div>
                         )}
 
