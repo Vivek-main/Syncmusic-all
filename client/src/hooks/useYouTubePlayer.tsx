@@ -17,13 +17,13 @@ import { loadYouTubeAPI } from '@/services/youtube';
 import { PlaybackEvent, SyncState, SyncStatus, YouTubePlayerInstance, YTPlayerState } from '@/types';
 
 // Sync thresholds
-const HARD_SYNC_THRESHOLD = 1.0;   // Seek if diff > 1 seconds (tighter)
-const SOFT_SYNC_THRESHOLD = 0.15;  // Adjust speed if diff > 150ms (microsync)
+const HARD_SYNC_THRESHOLD = 0.5;   // Seek if diff > 0.5 seconds (tighter)
+const SOFT_SYNC_THRESHOLD = 0.05;  // Adjust speed if diff > 50ms (microsync)
 const SYNC_INTERVAL = 1000;         // Check sync every 1 second
 const HEARTBEAT_INTERVAL = 1000;    // Host sends state every 1 second
-// YouTube only accepts specific playback rates: 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2
-const SPEED_UP_RATE = 1.25;
-const SLOW_DOWN_RATE = 0.75;
+// Use subtle playback rates for micro-syncing to avoid bouncing and distortion
+const SPEED_UP_RATE = 1.05;
+const SLOW_DOWN_RATE = 0.95;
 const NORMAL_SPEED = 1.0;
 
 interface UseYouTubePlayerOptions {
@@ -342,8 +342,8 @@ export function useYouTubePlayer({
             const adjustedTime = serverTime + elapsed;
             
             const currentTime = playerRef.current.getCurrentTime();
-            // Only seek if we are out of sync by more than half a second
-            if (Math.abs(currentTime - adjustedTime) > 0.5) {
+            // Seek if we are out of sync by more than 50ms
+            if (Math.abs(currentTime - adjustedTime) > SOFT_SYNC_THRESHOLD) {
                 playerRef.current.seekTo(adjustedTime, true);
             }
             
@@ -360,8 +360,8 @@ export function useYouTubePlayer({
             playerRef.current.pauseVideo();
             
             const currentTime = playerRef.current.getCurrentTime();
-            // Only seek on pause if significantly out of sync
-            if (Math.abs(currentTime - serverTime) > 0.5) {
+            // Only seek on pause if out of sync by more than 50ms
+            if (Math.abs(currentTime - serverTime) > SOFT_SYNC_THRESHOLD) {
                 playerRef.current.seekTo(serverTime, true);
             }
             
