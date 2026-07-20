@@ -20,6 +20,27 @@ export interface Room {
     users: RoomUser[];
     userCount: number;
     controllers: string[];
+    queue: QueueItem[];
+    chat: ChatMessage[];
+}
+
+export interface QueueItem {
+    id: string;
+    videoId: string;
+    title: string;
+    thumbnail: string;
+    duration: string;
+    author: string;
+    addedBy: string;
+    addedAt: number;
+}
+
+export interface ChatMessage {
+    id: string;
+    userId: string;
+    username: string;
+    text: string;
+    timestamp: number;
 }
 
 export interface SyncState {
@@ -81,6 +102,8 @@ export interface YouTubePlayerInstance {
     setPlaybackRate: (rate: number) => void;
     getPlaybackRate: () => number;
     loadVideoById: (videoId: string) => void;
+    setVolume: (volume: number) => void;
+    getVolume: () => number;
 }
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'reconnecting';

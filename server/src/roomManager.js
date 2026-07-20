@@ -25,6 +25,8 @@ const { nanoid } = require('nanoid');
  * @property {number} currentTime - Current playback position in seconds
  * @property {number} lastUpdate - Server timestamp of last state update (ms)
  * @property {RoomUser[]} users - List of connected users
+ * @property {any[]} queue - List of upcoming videos
+ * @property {any[]} chat - List of recent chat messages
  * @property {number} createdAt - Room creation timestamp
  */
 
@@ -65,6 +67,8 @@ class RoomManager {
                 },
             ],
             controllers: new Set(),
+            queue: [],
+            chat: [],
             createdAt: Date.now(),
         };
 

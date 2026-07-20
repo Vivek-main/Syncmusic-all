@@ -48,6 +48,9 @@ interface UseYouTubePlayerReturn {
     syncStatus: SyncStatus;
     loadVideo: (videoId: string, title?: string) => void;
     requestSync: () => void;
+    setVolume: (volume: number) => void;
+    seekTo: (time: number) => void;
+    togglePlay: () => void;
 }
 
 export function useYouTubePlayer({
@@ -181,6 +184,10 @@ export function useYouTubePlayer({
                 case YTPlayerState.ENDED:
                     setPlaying(false);
                     playingRef.current = false;
+                    // Auto-play next in queue if host
+                    if (isCurrentlyControlling) {
+                        socket.emit('play-next', { roomId: currentRoomId });
+                    }
                     break;
 
                 case YTPlayerState.BUFFERING:
@@ -467,10 +474,33 @@ export function useYouTubePlayer({
 
     const requestSync = useCallback(() => {
         if (!socket || !roomId) return;
-        setSyncStatus('syncing');
         socket.emit('request-sync', { roomId });
-        toast('Requesting sync...', { icon: <RefreshCw className="w-4 h-4 text-primary-500 animate-spin" /> });
     }, [socket, roomId]);
+
+    const setVolume = useCallback((volume: number) => {
+        if (playerRef.current && playerRef.current.setVolume) {
+            playerRef.current.setVolume(volume);
+        }
+    }, []);
+
+    const seekTo = useCallback((time: number) => {
+        if (!canControlRef.current) return;
+        if (playerRef.current && playerRef.current.seekTo) {
+            playerRef.current.seekTo(time, true);
+            setCurrentTime(time);
+        }
+    }, []);
+
+    const togglePlay = useCallback(() => {
+        if (!canControlRef.current) return;
+        if (playerRef.current) {
+            if (playing) {
+                playerRef.current.pauseVideo();
+            } else {
+                playerRef.current.playVideo();
+            }
+        }
+    }, [playing]);
 
     return {
         playerReady,
@@ -482,5 +512,8 @@ export function useYouTubePlayer({
         syncStatus,
         loadVideo,
         requestSync,
+        setVolume,
+        seekTo,
+        togglePlay,
     };
 }

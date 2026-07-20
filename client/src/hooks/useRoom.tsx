@@ -45,13 +45,36 @@ export function useRoom({ socket, onRoomJoined, onError }: UseRoomOptions): UseR
     const isHost = currentUser?.isHost ?? false;
     const isInRoom = room !== null;
 
-    // Keep track of socket ID
+    // Keep track of socket ID and handle auto-reconnect
     useEffect(() => {
         if (socket) {
             setSocketId(socket.id || '');
 
-            const onConnect = () => setSocketId(socket.id || '');
+            const onConnect = () => {
+                setSocketId(socket.id || '');
+                
+                // Attempt to restore session
+                const savedSession = sessionStorage.getItem('syncmusic_session');
+                if (savedSession && !room) {
+                    try {
+                        const { roomId, username } = JSON.parse(savedSession);
+                        if (roomId && username) {
+                            usernameRef.current = username;
+                            socket.emit('join-room', { roomId, username });
+                        }
+                    } catch (e) {
+                        sessionStorage.removeItem('syncmusic_session');
+                    }
+                }
+            };
+            
             socket.on('connect', onConnect);
+            
+            // If already connected, attempt restore immediately
+            if (socket.connected) {
+                onConnect();
+            }
+            
             return () => { socket.off('connect', onConnect); };
         }
     }, [socket]);
@@ -63,6 +86,7 @@ export function useRoom({ socket, onRoomJoined, onError }: UseRoomOptions): UseR
         const handleRoomCreated = ({ roomId, room }: { roomId: string; room: Room }) => {
             setRoom(room);
             setIsLoading(false);
+            sessionStorage.setItem('syncmusic_session', JSON.stringify({ roomId, username: usernameRef.current }));
             onRoomJoined?.(room);
             toast.success(`Room ${roomId} created!`, { icon: <Music className="w-4 h-4 text-green-500" /> });
         };
@@ -70,6 +94,7 @@ export function useRoom({ socket, onRoomJoined, onError }: UseRoomOptions): UseR
         const handleRoomJoined = ({ room }: { roomId: string; room: Room }) => {
             setRoom(room);
             setIsLoading(false);
+            sessionStorage.setItem('syncmusic_session', JSON.stringify({ roomId: room.id, username: usernameRef.current }));
             onRoomJoined?.(room);
             toast.success(`Joined room ${room.id}!`, { icon: <PartyPopper className="w-4 h-4 text-green-500" /> });
         };
@@ -105,6 +130,7 @@ export function useRoom({ socket, onRoomJoined, onError }: UseRoomOptions): UseR
 
         const handleLeftRoom = () => {
             setRoom(null);
+            sessionStorage.removeItem('syncmusic_session');
         };
 
         const handleAccessUpdated = ({ controllers }: { controllers: string[] }) => {
@@ -113,6 +139,9 @@ export function useRoom({ socket, onRoomJoined, onError }: UseRoomOptions): UseR
 
         const handleError = ({ message }: { message: string }) => {
             setIsLoading(false);
+            if (message === 'Room not found') {
+                sessionStorage.removeItem('syncmusic_session');
+            }
             onError?.(message);
             toast.error(message);
         };

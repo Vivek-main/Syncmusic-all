@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { extractVideoId } from '@/services/youtube';
-import { Gamepad2, Search, AlertTriangle, Play } from 'lucide-react';
+import { Gamepad2, Search, AlertTriangle, Play, Plus } from 'lucide-react';
 
 interface SearchResult {
     videoId: string;
@@ -13,12 +13,14 @@ interface SearchResult {
 
 interface VideoSearchProps {
     onVideoSelect: (videoId: string, title: string) => void;
+    onAddToQueue: (video: SearchResult) => void;
     isHost: boolean;
     currentVideoId: string | null;
 }
 
 export const VideoSearch: React.FC<VideoSearchProps> = ({
     onVideoSelect,
+    onAddToQueue,
     isHost,
     currentVideoId,
 }) => {
@@ -26,9 +28,12 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [results, setResults] = useState<SearchResult[]>([]);
+    const [suggestions, setSuggestions] = useState<string[]>([]);
 
     const performSearch = async (searchQuery: string) => {
         const trimmed = searchQuery.trim();
+        setSuggestions([]); // Clear suggestions when searching
+
         if (!trimmed) {
             setResults([]);
             setError('');
@@ -63,19 +68,35 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
         }
     };
 
-    // Auto-search as the user types (debounced)
+    // Auto-search suggestions as the user types (debounced)
     useEffect(() => {
-        const timer = setTimeout(() => {
-            if (query.trim() && !extractVideoId(query.trim())) {
-                performSearch(query);
-            } else if (!query.trim()) {
-                setResults([]);
-                setError('');
+        const timer = setTimeout(async () => {
+            const trimmed = query.trim();
+            if (trimmed && !extractVideoId(trimmed)) {
+                try {
+                    const localBackendUrl = `${window.location.protocol}//${window.location.hostname}:3001`;
+                    const API_URL = import.meta.env.VITE_SOCKET_URL || localBackendUrl;
+                    const res = await fetch(`${API_URL}/api/suggestions?q=${encodeURIComponent(trimmed)}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        setSuggestions(data.suggestions || []);
+                    }
+                } catch (err) {
+                    console.error('Failed to fetch suggestions', err);
+                }
+            } else {
+                setSuggestions([]);
             }
-        }, 500); // 500ms delay after they stop typing
+        }, 250); // Fast 250ms debounce for text autocomplete
 
         return () => clearTimeout(timer);
     }, [query]);
+
+    const handleSuggestionClick = (suggestion: string) => {
+        setQuery(suggestion);
+        setSuggestions([]);
+        performSearch(suggestion);
+    };
 
     const handleSubmit = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
@@ -184,6 +205,21 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
                 )}
             </form>
 
+            {suggestions.length > 0 && results.length === 0 && (
+                <div className="mt-2 space-y-1">
+                    {suggestions.map((suggestion, index) => (
+                        <button
+                            key={index}
+                            onClick={() => handleSuggestionClick(suggestion)}
+                            className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 transition-colors text-left bg-white border border-slate-100 shadow-sm"
+                        >
+                            <Search className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="text-sm text-slate-700 font-medium">{suggestion}</span>
+                        </button>
+                    ))}
+                </div>
+            )}
+
             {results.length > 0 && (
                 <div className="mt-4 space-y-2 max-h-[400px] overflow-y-auto scrollbar-thin pr-1">
                     <div className="flex justify-between items-center mb-2">
@@ -196,32 +232,43 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
                         </button>
                     </div>
                     {results.map(result => (
-                        <button
-                            key={result.videoId}
-                            onClick={() => handleSelectResult(result)}
-                            className="w-full flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors text-left bg-white border border-slate-100 shadow-sm hover:shadow"
-                        >
-                            <img 
-                                src={result.thumbnail} 
-                                alt="" 
-                                className="w-24 h-16 object-cover rounded-lg bg-slate-100 shrink-0 border border-slate-200/50"
-                            />
-                            <div className="flex flex-col flex-1 min-w-0 py-0.5">
-                                <span className="text-sm text-slate-900 font-semibold line-clamp-2 leading-tight">
-                                    {result.title}
-                                </span>
-                                <span className="text-xs text-slate-600 mt-1.5 line-clamp-1 font-medium flex items-center gap-1">
-                                    {result.author}
-                                    <span className="w-1 h-1 rounded-full bg-slate-300" />
-                                    <span className="text-slate-500">{result.duration}</span>
-                                </span>
-                            </div>
-                        </button>
+                        <div key={result.videoId} className="flex gap-2 w-full p-2.5 rounded-xl hover:bg-slate-50 transition-colors bg-white border border-slate-100 shadow-sm hover:shadow">
+                            <button
+                                onClick={() => handleSelectResult(result)}
+                                className="flex items-start gap-3 flex-1 text-left"
+                            >
+                                <img 
+                                    src={result.thumbnail} 
+                                    alt="" 
+                                    className="w-24 h-16 object-cover rounded-lg bg-slate-100 shrink-0 border border-slate-200/50"
+                                />
+                                <div className="flex flex-col flex-1 min-w-0 py-0.5">
+                                    <span className="text-sm text-slate-900 font-semibold line-clamp-2 leading-tight">
+                                        {result.title}
+                                    </span>
+                                    <span className="text-xs text-slate-600 mt-1.5 line-clamp-1 font-medium flex items-center gap-1">
+                                        {result.author}
+                                        <span className="w-1 h-1 rounded-full bg-slate-300" />
+                                        <span className="text-slate-500">{result.duration}</span>
+                                    </span>
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => {
+                                    onAddToQueue(result);
+                                    toast.success('Added to queue!', { icon: <Plus className="w-4 h-4 text-primary-500" /> });
+                                }}
+                                className="p-2 h-fit bg-primary-50 text-primary-600 hover:bg-primary-100 rounded-lg transition-colors border border-primary-100 shrink-0"
+                                title="Add to Queue"
+                            >
+                                <Plus className="w-5 h-5" />
+                            </button>
+                        </div>
                     ))}
                 </div>
             )}
             
-            {results.length === 0 && !error && (
+            {results.length === 0 && suggestions.length === 0 && !error && (
                 <p className="text-slate-500 text-xs mt-3 text-center">
                     Type a search term (e.g. "lofi hip hop") or paste a video URL.
                 </p>

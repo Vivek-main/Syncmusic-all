@@ -13,6 +13,9 @@ import { PlaybackControls } from '@/components/PlaybackControls';
 import { RoomHeader } from '@/components/RoomHeader';
 import { VideoInfo } from '@/components/VideoInfo';
 import { SuggestedVideos } from '@/components/SuggestedVideos';
+import { VideoQueue } from '@/components/VideoQueue';
+import { ChatBox } from '@/components/ChatBox';
+import { ReactionsOverlay } from '@/components/ReactionsOverlay';
 import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
 import { Crown, SlidersHorizontal, Headphones, Radio } from 'lucide-react';
 
@@ -55,6 +58,9 @@ export const RoomPage: React.FC<RoomPageProps> = ({
         syncStatus,
         loadVideo,
         requestSync,
+        setVolume,
+        seekTo,
+        togglePlay,
     } = useYouTubePlayer({
         containerId: PLAYER_CONTAINER_ID,
         socket,
@@ -75,6 +81,37 @@ export const RoomPage: React.FC<RoomPageProps> = ({
         [loadVideo]
     );
 
+    const handleAddToQueue = useCallback(
+        (video: any) => {
+            if (!socket) return;
+            socket.emit('add-to-queue', { roomId: room.id, video });
+        },
+        [socket, room.id]
+    );
+
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Ignore if typing in an input or textarea
+            const target = e.target as HTMLElement;
+            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+
+            if (e.code === 'Space') {
+                e.preventDefault();
+                togglePlay();
+            } else if (e.code === 'ArrowRight') {
+                e.preventDefault();
+                seekTo(Math.min(duration, currentTime + 5));
+            } else if (e.code === 'ArrowLeft') {
+                e.preventDefault();
+                seekTo(Math.max(0, currentTime - 5));
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [togglePlay, seekTo, currentTime, duration]);
+
     return (
         <div className="min-h-screen flex flex-col p-4 lg:p-6 relative">
             {/* Background Effects */}
@@ -82,6 +119,8 @@ export const RoomPage: React.FC<RoomPageProps> = ({
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-primary-500/10 rounded-full blur-[120px]" />
                 <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-secondary-500/10 rounded-full blur-[120px]" />
             </div>
+            
+            <ReactionsOverlay socket={socket} />
 
             <div className="max-w-7xl mx-auto space-y-4">
                 {/* Room Header */}
@@ -99,6 +138,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({
                         {/* Video Search (Host Only) */}
                         <VideoSearch
                             onVideoSelect={handleVideoSelect}
+                            onAddToQueue={handleAddToQueue}
                             isHost={canControl}
                             currentVideoId={videoId}
                         />
@@ -142,6 +182,11 @@ export const RoomPage: React.FC<RoomPageProps> = ({
                             isHost={canControl}
                             syncStatus={syncStatus}
                             onRequestSync={requestSync}
+                            setVolume={setVolume}
+                            seekTo={seekTo}
+                            togglePlay={togglePlay}
+                            socket={socket}
+                            roomId={room.id}
                         />
 
                         {/* Suggested Videos (Only visible to hosts/co-hosts) */}
@@ -150,6 +195,15 @@ export const RoomPage: React.FC<RoomPageProps> = ({
                             currentVideoTitle={videoTitle}
                             isHost={canControl}
                             onVideoSelect={handleVideoSelect}
+                            onAddToQueue={handleAddToQueue}
+                        />
+
+                        {/* Video Queue */}
+                        <VideoQueue 
+                            queue={room.queue || []}
+                            isHost={canControl}
+                            socket={socket}
+                            roomId={room.id}
                         />
                     </div>
 
@@ -231,6 +285,14 @@ export const RoomPage: React.FC<RoomPageProps> = ({
                                 />
                             </div>
                         </div>
+
+                        {/* Chat Box */}
+                        <ChatBox 
+                            socket={socket}
+                            roomId={room.id}
+                            chatHistory={room.chat || []}
+                            username={room.users.find(u => u.id === currentUserId)?.username || 'User'}
+                        />
                     </div>
                 </div>
             </div>

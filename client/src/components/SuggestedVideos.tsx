@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Play } from 'lucide-react';
+import { Play, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface SearchResult {
@@ -15,6 +15,7 @@ interface SuggestedVideosProps {
     currentVideoTitle: string | null;
     isHost: boolean;
     onVideoSelect: (videoId: string, title: string) => void;
+    onAddToQueue: (video: SearchResult) => void;
 }
 
 export const SuggestedVideos: React.FC<SuggestedVideosProps> = ({
@@ -22,6 +23,7 @@ export const SuggestedVideos: React.FC<SuggestedVideosProps> = ({
     currentVideoTitle,
     isHost,
     onVideoSelect,
+    onAddToQueue,
 }) => {
     const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -120,9 +122,22 @@ export const SuggestedVideos: React.FC<SuggestedVideosProps> = ({
                             </div>
                         </div>
                         <div>
-                            <h4 className="text-sm font-medium text-white line-clamp-2 leading-snug group-hover:text-primary-400 transition-colors">
-                                {video.title}
-                            </h4>
+                            <div className="flex justify-between items-start gap-2">
+                                <h4 className="text-sm font-medium text-white line-clamp-2 leading-snug group-hover:text-primary-400 transition-colors flex-1">
+                                    {video.title}
+                                </h4>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation(); // prevent playing video
+                                        onAddToQueue(video);
+                                        toast.success('Added to queue!', { icon: <Plus className="w-4 h-4 text-primary-500" /> });
+                                    }}
+                                    className="p-1.5 h-fit bg-primary-500/10 text-primary-400 hover:bg-primary-500 hover:text-white rounded transition-colors opacity-0 group-hover:opacity-100"
+                                    title="Add to Queue"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                </button>
+                            </div>
                             <p className="text-xs text-slate-400 mt-1">
                                 {video.author}
                             </p>

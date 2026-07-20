@@ -7,6 +7,7 @@
  */
 
 const { roomManager } = require('./roomManager');
+const { nanoid } = require('nanoid');
 
 /**
  * Initialize all Socket.IO event handlers
@@ -101,7 +102,94 @@ function initializeSocket(io) {
             }
         });
 
-        // ─── Access Control ──────────────────────────────────────────────────────
+        // ─── Queue Management ────────────────────────────────────────────────────
+
+        socket.on('add-to-queue', ({ roomId, video }) => {
+            const room = roomManager.getRoom(roomId);
+            if (!room || !video) return;
+
+            room.queue.push({
+                ...video,
+                id: nanoid(10), // unique id for queue item
+                addedBy: socket.id,
+                addedAt: Date.now()
+            });
+
+            io.to(roomId).emit('queue-updated', { queue: room.queue });
+            console.log(`[Queue] Added ${video.videoId} to room ${roomId}`);
+        });
+
+        socket.on('remove-from-queue', ({ roomId, queueItemId }) => {
+            const room = roomManager.getRoom(roomId);
+            if (!room || (room.hostId !== socket.id && !room.controllers.has(socket.id))) return;
+
+            room.queue = room.queue.filter(item => item.id !== queueItemId);
+            io.to(roomId).emit('queue-updated', { queue: room.queue });
+            console.log(`[Queue] Removed item ${queueItemId} from room ${roomId}`);
+        });
+
+        socket.on('play-next', ({ roomId }) => {
+            const room = roomManager.getRoom(roomId);
+            if (!room || (room.hostId !== socket.id && !room.controllers.has(socket.id))) return;
+            if (room.queue.length === 0) return;
+
+            const nextVideo = room.queue.shift();
+            
+            roomManager.updateRoomState(roomId, {
+                videoId: nextVideo.videoId,
+                videoTitle: nextVideo.title || null,
+                playing: false,
+                currentTime: 0,
+            });
+
+            // Broadcast video change
+            io.to(roomId).emit('change-video', {
+                videoId: nextVideo.videoId,
+                videoTitle: nextVideo.title || null,
+                serverTime: Date.now(),
+            });
+            
+            // Broadcast new queue state
+            io.to(roomId).emit('queue-updated', { queue: room.queue });
+            console.log(`[Queue] Played next video ${nextVideo.videoId} in room ${roomId}`);
+        });
+
+        // ─── Chat & Reactions ────────────────────────────────────────────────────
+
+        socket.on('send-chat', ({ roomId, text, username }) => {
+            const room = roomManager.getRoom(roomId);
+            if (!room || !text || text.trim() === '') return;
+
+            const message = {
+                id: nanoid(10),
+                userId: socket.id,
+                username: username || 'Anonymous',
+                text: text.trim().slice(0, 200), // Max 200 chars
+                timestamp: Date.now()
+            };
+
+            room.chat.push(message);
+            
+            // Keep only last 50 messages
+            if (room.chat.length > 50) {
+                room.chat.shift();
+            }
+
+            io.to(roomId).emit('chat-message', message);
+        });
+
+        socket.on('send-reaction', ({ roomId, emoji }) => {
+            const room = roomManager.getRoom(roomId);
+            if (!room || !emoji) return;
+
+            io.to(roomId).emit('room-reaction', {
+                emoji,
+                userId: socket.id,
+                timestamp: Date.now()
+            });
+        });
+
+        // ─── Latency / Connection Health ──────────────────────────────────────────────────────
 
         socket.on('grant-control', ({ roomId, userId }) => {
             const room = roomManager.getRoom(roomId);
@@ -363,6 +451,8 @@ function serializeRoom(room) {
         users: room.users,
         userCount: room.users.length,
         controllers: Array.from(room.controllers),
+        queue: room.queue,
+        chat: room.chat,
     };
 }
 

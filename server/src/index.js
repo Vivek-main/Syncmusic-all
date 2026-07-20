@@ -91,6 +91,28 @@ app.get('/api/search', async (req, res) => {
     }
 });
 
+// Fast autocomplete suggestions via Google API
+app.get('/api/suggestions', async (req, res) => {
+    try {
+        const query = req.query.q;
+        if (!query || typeof query !== 'string') {
+            return res.status(400).json({ error: 'Query is required' });
+        }
+        
+        // Use client=firefox for a simple JSON array response: ["query", ["sugg1", "sugg2"]]
+        const url = `http://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(query)}`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Failed to fetch from Google');
+        
+        const data = await response.json();
+        // data[1] contains the array of suggestions
+        res.json({ suggestions: data[1] || [] });
+    } catch (err) {
+        console.error('[Suggestions] error:', err);
+        res.status(500).json({ error: 'Failed to fetch suggestions' });
+    }
+});
+
 // ─── Start Server ─────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3001;
 
