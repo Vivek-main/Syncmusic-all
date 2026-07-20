@@ -240,7 +240,7 @@ export function useYouTubePlayer({
         }, 500);
 
         return () => clearInterval(checkForSeek);
-    }, [isHost, socket, roomId, playerReady]);
+    }, [canControl, socket, roomId, playerReady]);
 
     // ─── Host: Send Heartbeat ─────────────────────────────────────────────────
     useEffect(() => {

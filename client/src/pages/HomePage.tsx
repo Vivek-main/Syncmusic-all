@@ -19,7 +19,9 @@ export const HomePage: React.FC<HomePageProps> = ({
     onJoinRoom,
     isLoading,
 }) => {
-    const [username, setUsername] = useState('');
+    const [username, setUsername] = useState(() => {
+        return localStorage.getItem('musicsync_username') || '';
+    });
     const [roomId, setRoomId] = useState('');
     const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
     // const navigate = useNavigate(); // unused
@@ -40,6 +42,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             toast.error('Please enter a username');
             return;
         }
+        localStorage.setItem('musicsync_username', username.trim());
         onCreateRoom(username.trim());
     };
 
@@ -53,6 +56,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             toast.error('Please enter a Room ID');
             return;
         }
+        localStorage.setItem('musicsync_username', username.trim());
         onJoinRoom(roomId.trim().toUpperCase(), username.trim());
     };
 

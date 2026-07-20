@@ -37,18 +37,27 @@ export const UserList: React.FC<UserListProps> = ({
             </h3>
 
             <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-thin">
-                {users.map((user) => (
-                    <UserListItem
-                        key={user.id}
-                        user={user}
-                        isCurrentUser={user.id === currentUserId}
-                        isHost={user.id === hostId}
-                        isController={controllers.includes(user.id)}
-                        canManage={isHost && user.id !== currentUserId}
-                        onGrantControl={onGrantControl}
-                        onRevokeControl={onRevokeControl}
-                    />
-                ))}
+                {users.map((user) => {
+                    const isController = controllers.includes(user.id);
+                    const isCreator = user.id === hostId;
+                    const currentUserHasAccess = isHost || controllers.includes(currentUserId);
+                    const isSelf = user.id === currentUserId;
+                    // You can manage someone if you have access, AND you aren't trying to manage yourself, AND you aren't trying to manage the Creator
+                    const canManageUser = currentUserHasAccess && !isSelf && !isCreator;
+
+                    return (
+                        <UserListItem
+                            key={user.id}
+                            user={user}
+                            isCurrentUser={isSelf}
+                            isHost={isCreator}
+                            isController={isController}
+                            canManage={canManageUser}
+                            onGrantControl={onGrantControl}
+                            onRevokeControl={onRevokeControl}
+                        />
+                    );
+                })}
             </div>
         </div>
     );
@@ -108,13 +117,13 @@ const UserListItem: React.FC<UserListItemProps> = ({
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
                     {isHost && (
-                        <span className="text-xs text-yellow-600 font-medium flex items-center gap-1">
+                        <span className="text-xs text-yellow-600 font-medium flex items-center gap-1" title="Creator">
                             <Crown className="w-3 h-3" /> Host
                         </span>
                     )}
                     {isController && !isHost && (
                         <span className="text-xs text-secondary-600 font-medium flex items-center gap-1">
-                            <SlidersHorizontal className="w-3 h-3" /> Co-Host
+                            <Crown className="w-3 h-3" /> Host
                         </span>
                     )}
                 </div>

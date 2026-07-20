@@ -193,7 +193,8 @@ function initializeSocket(io) {
 
         socket.on('grant-control', ({ roomId, userId }) => {
             const room = roomManager.getRoom(roomId);
-            if (!room || room.hostId !== socket.id) return;
+            if (!room || (room.hostId !== socket.id && !room.controllers.has(socket.id))) return;
+            
             room.controllers.add(userId);
             io.to(roomId).emit('access-updated', { controllers: Array.from(room.controllers) });
             console.log(`[Access] Granted to ${userId} in room ${roomId}`);
@@ -201,7 +202,9 @@ function initializeSocket(io) {
 
         socket.on('revoke-control', ({ roomId, userId }) => {
             const room = roomManager.getRoom(roomId);
-            if (!room || room.hostId !== socket.id) return;
+            if (!room || (room.hostId !== socket.id && !room.controllers.has(socket.id))) return;
+            if (userId === room.hostId) return; // Cannot revoke the creator
+            
             room.controllers.delete(userId);
             io.to(roomId).emit('access-updated', { controllers: Array.from(room.controllers) });
             console.log(`[Access] Revoked from ${userId} in room ${roomId}`);
