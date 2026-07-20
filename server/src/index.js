@@ -76,7 +76,20 @@ app.get('/api/search', async (req, res) => {
         
         const ytSearch = require('yt-search');
         const results = await ytSearch(query);
-        const videos = results.videos.slice(0, 5).map(v => ({
+        
+        // Filter out official music channels that strictly block embedding
+        const blockedKeywords = ['vevo', 't-series', 'zee music', 'sony music', 'speed records', 'yash raj films'];
+        const isLikelyBlocked = (authorName) => {
+            if (!authorName) return false;
+            const name = authorName.toLowerCase();
+            return blockedKeywords.some(keyword => name.includes(keyword));
+        };
+        
+        // Filter out blocked channels. If it filters out EVERYTHING, fallback to original results
+        const safeVideos = results.videos.filter(v => !isLikelyBlocked(v.author.name));
+        const videosToUse = safeVideos.length > 0 ? safeVideos : results.videos;
+
+        const videos = videosToUse.slice(0, 15).map(v => ({
             videoId: v.videoId,
             title: v.title,
             thumbnail: v.thumbnail,
