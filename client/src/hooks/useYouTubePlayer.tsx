@@ -310,8 +310,13 @@ export function useYouTubePlayer({
             // Compensate for latency
             const elapsed = (Date.now() - timestamp) / 1000;
             const adjustedTime = serverTime + elapsed;
-
-            playerRef.current.seekTo(adjustedTime, true);
+            
+            const currentTime = playerRef.current.getCurrentTime();
+            // Only seek if we are out of sync by more than half a second
+            if (Math.abs(currentTime - adjustedTime) > 0.5) {
+                playerRef.current.seekTo(adjustedTime, true);
+            }
+            
             playerRef.current.playVideo();
             setPlaying(true);
             setSyncStatus('synced');
@@ -322,7 +327,13 @@ export function useYouTubePlayer({
             if (!playerRef.current) return;
 
             playerRef.current.pauseVideo();
-            playerRef.current.seekTo(serverTime, true);
+            
+            const currentTime = playerRef.current.getCurrentTime();
+            // Only seek on pause if significantly out of sync
+            if (Math.abs(currentTime - serverTime) > 0.5) {
+                playerRef.current.seekTo(serverTime, true);
+            }
+            
             setPlaying(false);
             setSyncStatus('synced');
         };
