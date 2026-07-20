@@ -118,8 +118,7 @@ const PORT = process.env.PORT || 3001;
 
 server.listen(PORT, () => {
     console.log(`\n🎵 SyncMusic Server running on port ${PORT}`);
-    console.log(`📡 Socket.IO ready for connections`);
-    console.log(`🌐 Allowing origins: ${allowedOrigins.join(', ')}\n`);
+    console.log(`📡 Socket.IO ready for connections\n`);
 });
 
 // Graceful shutdown
