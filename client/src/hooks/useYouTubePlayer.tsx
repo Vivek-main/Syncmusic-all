@@ -186,7 +186,7 @@ export function useYouTubePlayer({
                     playingRef.current = true;
                     // Only emit if this state change wasn't triggered by a recent remote command
                     if (isCurrentlyControlling && (Date.now() - lastRemoteActionTimeRef.current > 1000)) {
-                        socket.emit('play', { roomId: currentRoomId, currentTime: currentVideoTime });
+                        socket.emit('play', { roomId: currentRoomId, currentTime: currentVideoTime + manualOffsetRef.current });
                     }
                     break;
 
@@ -194,7 +194,7 @@ export function useYouTubePlayer({
                     setPlaying(false);
                     playingRef.current = false;
                     if (isCurrentlyControlling && (Date.now() - lastRemoteActionTimeRef.current > 1000)) {
-                        socket.emit('pause', { roomId: currentRoomId, currentTime: currentVideoTime });
+                        socket.emit('pause', { roomId: currentRoomId, currentTime: currentVideoTime + manualOffsetRef.current });
                     }
                     break;
 
@@ -233,7 +233,7 @@ export function useYouTubePlayer({
 
             // If time jumped more than 2 seconds, it's a seek
             if (diff > 2 && elapsed < 3) {
-                socket.emit('seek', { roomId, currentTime: currentPlayerTime });
+                socket.emit('seek', { roomId, currentTime: currentPlayerTime + manualOffsetRef.current });
                 console.log('[Host] Seek detected:', currentPlayerTime);
             }
 
@@ -262,7 +262,7 @@ export function useYouTubePlayer({
 
             socket.emit('host-heartbeat', {
                 roomId,
-                currentTime: currentPlayerTime,
+                currentTime: currentPlayerTime + manualOffsetRef.current,
                 playing: isPlaying,
             });
         }, HEARTBEAT_INTERVAL);

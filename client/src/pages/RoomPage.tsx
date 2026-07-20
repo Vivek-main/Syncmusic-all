@@ -313,7 +313,6 @@ export const RoomPage: React.FC<RoomPageProps> = ({
                                 />
                             </div>
                             
-                            {!isHost && (
                                 <div className="mt-3 pt-3 border-t border-slate-100">
                                     <div className="flex justify-between items-center mb-2">
                                         <span className="text-slate-500 text-xs font-medium">Fine Tune Audio</span>
@@ -325,7 +324,6 @@ export const RoomPage: React.FC<RoomPageProps> = ({
                                         <button onClick={() => setManualOffsetMs(m => m + 20)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-1.5 rounded transition-colors">+20ms</button>
                                     </div>
                                 </div>
-                            )}
                         </div>
 
                         {/* Chat Box */}
