@@ -15,27 +15,22 @@ const app = express();
 const server = http.createServer(app);
 
 // ─── CORS Configuration ───────────────────────────────────────────────────────
-const allowedOrigins = process.env.CLIENT_URL
-    ? [process.env.CLIENT_URL]
-    : ['http://localhost:5173', 'http://localhost:3000'];
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Allow all origins dynamically (fixes local IP testing)
+        callback(null, true);
+    },
+    methods: ['GET', 'POST'],
+    credentials: true,
+};
 
-app.use(
-    cors({
-        origin: allowedOrigins,
-        methods: ['GET', 'POST'],
-        credentials: true,
-    })
-);
+app.use(cors(corsOptions));
 
 app.use(express.json());
 
 // ─── Socket.IO Setup ──────────────────────────────────────────────────────────
 const io = new Server(server, {
-    cors: {
-        origin: allowedOrigins,
-        methods: ['GET', 'POST'],
-        credentials: true,
-    },
+    cors: corsOptions,
     pingTimeout: 60000,
     pingInterval: 25000,
 });

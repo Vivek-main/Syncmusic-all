@@ -70,7 +70,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     <Music className="w-16 h-16 text-primary-600" />
                 </div>
                 <h1 className="text-5xl font-display font-bold text-slate-900 mb-3 tracking-tight">
-                    Vivek<span className="text-transparent bg-clip-text  bg-pink-500 from-primary-500 to-secondary-500"> Music</span>
+                    Love<span className="text-transparent bg-clip-text  bg-pink-500 from-primary-500 to-secondary-500"> Music</span>
                 </h1>
                 <p className="text-slate-600 text-lg max-w-md mx-auto font-light">
                     Watch YouTube videos in perfect sync with friends across any device

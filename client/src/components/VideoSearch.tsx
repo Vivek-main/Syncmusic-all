@@ -66,7 +66,8 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
 
         // Otherwise, perform a search
         try {
-            const API_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001';
+            const localBackendUrl = `${window.location.protocol}//${window.location.hostname}:3001`;
+            const API_URL = import.meta.env.VITE_SOCKET_URL || localBackendUrl;
             const res = await fetch(`${API_URL}/api/search?q=${encodeURIComponent(trimmed)}`);
             if (!res.ok) throw new Error('Search failed');
             

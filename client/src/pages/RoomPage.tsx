@@ -92,8 +92,13 @@ export const RoomPage: React.FC<RoomPageProps> = ({
 
                 {/* Main Layout */}
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                    {/* Video Column */}
                     <div className="lg:col-span-3 space-y-4">
+                        {/* Video Search (Host Only) */}
+                        <VideoSearch
+                            onVideoSelect={handleVideoSelect}
+                            isHost={canControl}
+                            currentVideoId={videoId}
+                        />
                         {/* YouTube Player */}
                         <YouTubePlayer
                             containerId={PLAYER_CONTAINER_ID}
@@ -120,13 +125,6 @@ export const RoomPage: React.FC<RoomPageProps> = ({
                             isHost={canControl}
                             syncStatus={syncStatus}
                             onRequestSync={requestSync}
-                        />
-
-                        {/* Video Search (Host Only) */}
-                        <VideoSearch
-                            onVideoSelect={handleVideoSelect}
-                            isHost={canControl}
-                            currentVideoId={videoId}
                         />
                     </div>
 
