@@ -290,32 +290,37 @@ export function useYouTubePlayer({
 
             const clientTime = playerRef.current.getCurrentTime();
             const diff = Math.abs(clientTime - adjustedServerTime);
+            
+            const playerState = playerRef.current.getPlayerState?.();
 
-            // Hard sync: seek immediately
-            if (diff > HARD_SYNC_THRESHOLD) {
-                playerRef.current.seekTo(adjustedServerTime, true);
-                setSyncStatus('syncing');
-                console.log(`[Sync] Hard sync: diff=${diff.toFixed(2)}s, seeking to ${adjustedServerTime.toFixed(2)}s`);
-            }
-            // Soft sync: adjust playback speed
-            else if (diff > SOFT_SYNC_THRESHOLD) {
-                if (clientTime < adjustedServerTime) {
-                    playerRef.current.setPlaybackRate?.(SPEED_UP_RATE);
-                } else {
-                    playerRef.current.setPlaybackRate?.(SLOW_DOWN_RATE);
+            // Only attempt position sync if the video is actually loaded/playing
+            // If it's buffering or unstarted, let it load first to avoid stutter loops
+            if (playerState !== YTPlayerState.BUFFERING && playerState !== YTPlayerState.UNSTARTED) {
+                // Hard sync: seek immediately
+                if (diff > HARD_SYNC_THRESHOLD) {
+                    playerRef.current.seekTo(adjustedServerTime, true);
+                    setSyncStatus('syncing');
+                    console.log(`[Sync] Hard sync: diff=${diff.toFixed(2)}s, seeking to ${adjustedServerTime.toFixed(2)}s`);
                 }
-                setSyncStatus('syncing');
-                console.log(`[Sync] Soft sync: diff=${diff.toFixed(2)}s, adjusting speed`);
-            }
-            // In sync
-            else {
-                playerRef.current.setPlaybackRate?.(NORMAL_SPEED);
-                setSyncStatus('synced');
+                // Soft sync: adjust playback speed
+                else if (diff > SOFT_SYNC_THRESHOLD) {
+                    if (clientTime < adjustedServerTime) {
+                        playerRef.current.setPlaybackRate?.(SPEED_UP_RATE);
+                    } else {
+                        playerRef.current.setPlaybackRate?.(SLOW_DOWN_RATE);
+                    }
+                    setSyncStatus('syncing');
+                    console.log(`[Sync] Soft sync: diff=${diff.toFixed(2)}s, adjusting speed`);
+                }
+                // In sync
+                else {
+                    playerRef.current.setPlaybackRate?.(NORMAL_SPEED);
+                    setSyncStatus('synced');
+                }
             }
 
             // Handle play/pause sync
-            const playerState = playerRef.current.getPlayerState?.();
-            if (shouldPlay && playerState !== YTPlayerState.PLAYING) {
+            if (shouldPlay && playerState !== YTPlayerState.PLAYING && playerState !== YTPlayerState.BUFFERING) {
                 playerRef.current.playVideo();
             } else if (!shouldPlay && playerState === YTPlayerState.PLAYING) {
                 playerRef.current.pauseVideo();
