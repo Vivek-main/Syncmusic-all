@@ -43,9 +43,10 @@ class RoomManager {
      * Create a new room with a unique ID
      * @param {string} hostSocketId - Socket ID of the host
      * @param {string} hostUsername - Display name of the host
+     * @param {boolean} [isPublic=true] - Whether the room is listed publicly
      * @returns {Room} The newly created room
      */
-    createRoom(hostSocketId, hostUsername) {
+    createRoom(hostSocketId, hostUsername, isPublic = true) {
         const roomId = nanoid(8).toUpperCase(); // Short, readable room codes like "AB3X9K2P"
 
         /** @type {Room} */
@@ -57,6 +58,7 @@ class RoomManager {
             playing: false,
             currentTime: 0,
             lastUpdate: Date.now(),
+            isPublic: isPublic !== false,
             users: [
                 {
                     id: hostSocketId,
@@ -73,8 +75,31 @@ class RoomManager {
         };
 
         this.rooms.set(roomId, room);
-        console.log(`[Room] Created room ${roomId} by ${hostUsername} (${hostSocketId})`);
+        console.log(`[Room] Created room ${roomId} (Public: ${room.isPublic}) by ${hostUsername} (${hostSocketId})`);
         return room;
+    }
+
+    /**
+     * Get all active public rooms
+     */
+    getPublicRooms() {
+        const publicRooms = [];
+        for (const room of this.rooms.values()) {
+            if (room.isPublic && room.users.length > 0) {
+                const hostUser = room.users.find(u => u.id === room.hostId) || room.users[0];
+                publicRooms.push({
+                    id: room.id,
+                    userCount: room.users.length,
+                    hostUsername: hostUser ? hostUser.username : 'Host',
+                    videoId: room.videoId,
+                    videoTitle: room.videoTitle,
+                    thumbnail: room.videoId ? `https://img.youtube.com/vi/${room.videoId}/hqdefault.jpg` : null,
+                    playing: room.playing,
+                    createdAt: room.createdAt,
+                });
+            }
+        }
+        return publicRooms.sort((a, b) => b.userCount - a.userCount);
     }
 
     /**

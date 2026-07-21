@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '@/utils/cn';
-import { RefreshCw, Volume2, SkipForward, Play, Pause, Sliders, Vote } from 'lucide-react';
+import { RefreshCw, Volume2, SkipForward, Play, Pause, Sliders, Vote, Heart } from 'lucide-react';
 import { Socket } from 'socket.io-client';
+import toast from 'react-hot-toast';
+import { saveFavoriteTrack, getSavedFavorites } from '@/components/FavoritesDrawer';
 
 interface PlaybackControlsProps {
     currentTime: number;
@@ -16,6 +18,8 @@ interface PlaybackControlsProps {
     togglePlay: () => void;
     socket: Socket | null;
     roomId: string;
+    currentVideoId?: string | null;
+    currentVideoTitle?: string | null;
 }
 
 function formatTime(seconds: number): string {
@@ -52,12 +56,24 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
     togglePlay,
     socket,
     roomId,
+    currentVideoId,
+    currentVideoTitle,
 }) => {
     const [localVolume, setLocalVolume] = useState(100);
     const [selectedQuality, setSelectedQuality] = useState('auto');
     const [audioFx, setAudioFx] = useState('normal');
     const [skipVotes, setSkipVotes] = useState({ votes: 0, required: 1, userVoted: false });
+    const [isFavorited, setIsFavorited] = useState(false);
     const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+    useEffect(() => {
+        if (currentVideoId) {
+            const favs = getSavedFavorites();
+            setIsFavorited(favs.some(f => f.videoId === currentVideoId));
+        } else {
+            setIsFavorited(false);
+        }
+    }, [currentVideoId]);
 
     // Listen to vote skip updates
     useEffect(() => {
@@ -245,8 +261,29 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
                     </div>
                 </div>
 
-                {/* Center: Reactions */}
+                {/* Center: Reactions & Favorite */}
                 <div className="flex items-center gap-2">
+                    {/* Heart Favorite Button */}
+                    <button
+                        onClick={() => {
+                            if (!currentVideoId) {
+                                toast.error('No video playing to favorite');
+                                return;
+                            }
+                            const isFav = saveFavoriteTrack({
+                                videoId: currentVideoId,
+                                title: currentVideoTitle || 'YouTube Video',
+                            });
+                            setIsFavorited(isFav);
+                        }}
+                        className={`p-1.5 rounded-full transition-transform duration-200 hover:scale-125 ${
+                            isFavorited ? 'text-red-500 fill-red-500' : 'text-slate-400 hover:text-red-500'
+                        }`}
+                        title="Save to Favorites"
+                    >
+                        <Heart className={`w-5 h-5 ${isFavorited ? 'fill-red-500 text-red-500' : ''}`} />
+                    </button>
+
                     {REACTIONS.map(emoji => (
                         <button
                             key={emoji}

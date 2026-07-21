@@ -23,7 +23,7 @@ function initializeSocket(io) {
          * Create a new room
          * Emits: room-created (to creator), error (on failure)
          */
-        socket.on('create-room', ({ username }) => {
+        socket.on('create-room', ({ username, isPublic }) => {
             try {
                 if (!username || typeof username !== 'string') {
                     socket.emit('error', { message: 'Invalid username' });
@@ -31,7 +31,7 @@ function initializeSocket(io) {
                 }
 
                 const sanitizedUsername = username.trim().slice(0, 30) || 'Anonymous';
-                const room = roomManager.createRoom(socket.id, sanitizedUsername);
+                const room = roomManager.createRoom(socket.id, sanitizedUsername, isPublic !== false);
 
                 // Join the Socket.IO room channel
                 socket.join(room.id);

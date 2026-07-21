@@ -18,6 +18,7 @@ import { ChatBox } from '@/components/ChatBox';
 import { ReactionsOverlay } from '@/components/ReactionsOverlay';
 import { DJSoundboard } from '@/components/DJSoundboard';
 import { LyricsDisplay } from '@/components/LyricsDisplay';
+import { FavoritesDrawer } from '@/components/FavoritesDrawer';
 import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
 import { Crown, SlidersHorizontal, Headphones, Radio, PictureInPicture2, Maximize2, Music, Zap, CheckCircle2 } from 'lucide-react';
 
@@ -160,6 +161,8 @@ export const RoomPage: React.FC<RoomPageProps> = ({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [togglePlay, seekTo, currentTime, duration]);
 
+    const [isFavoritesOpen, setIsFavoritesOpen] = React.useState(false);
+
     return (
         <div className="min-h-screen flex flex-col p-4 lg:p-6 relative bg-[#f8fafc] dark:bg-[#0b0f17] text-slate-900 dark:text-slate-100 transition-colors duration-300">
             {/* Background Effects */}
@@ -169,6 +172,15 @@ export const RoomPage: React.FC<RoomPageProps> = ({
             </div>
             
             <ReactionsOverlay socket={socket} />
+
+            {/* My Favorites Drawer */}
+            <FavoritesDrawer
+                isOpen={isFavoritesOpen}
+                onClose={() => setIsFavoritesOpen(false)}
+                isHost={canControl}
+                onVideoSelect={handleVideoSelect}
+                onAddToQueue={handleAddToQueue}
+            />
 
             {/* Live Sync Banner Notification */}
             {syncBanner && (
@@ -203,6 +215,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({
                     latency={latency}
                     userCount={room.userCount}
                     onLeave={onLeave}
+                    onOpenFavorites={() => setIsFavoritesOpen(true)}
                 />
 
                 {/* Main Layout */}
@@ -283,6 +296,8 @@ export const RoomPage: React.FC<RoomPageProps> = ({
                             togglePlay={togglePlay}
                             socket={socket}
                             roomId={room.id}
+                            currentVideoId={videoId}
+                            currentVideoTitle={videoTitle}
                         />
 
                         {/* Live DJ Soundboard */}

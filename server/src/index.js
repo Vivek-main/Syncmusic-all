@@ -158,8 +158,19 @@ app.get('/api/search', async (req, res) => {
         searchCache.set(cacheKey, { timestamp: Date.now(), results: videos });
         res.json({ results: videos });
     } catch (err) {
-        console.error('[Search] error:', err);
-        res.status(500).json({ error: 'Failed to search YouTube' });
+        console.error('Search API error:', err);
+        res.status(500).json({ error: 'Search failed' });
+    }
+});
+
+// GET /api/public-rooms - Get list of active public rooms
+app.get('/api/public-rooms', (req, res) => {
+    try {
+        const publicRooms = roomManager.getPublicRooms();
+        res.json({ rooms: publicRooms });
+    } catch (err) {
+        console.error('Public rooms API error:', err);
+        res.status(500).json({ error: 'Failed to fetch public rooms' });
     }
 });
 

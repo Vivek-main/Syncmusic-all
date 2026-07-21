@@ -8,7 +8,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import { ConnectionStatus } from '@/types';
 import { cn } from '@/utils/cn';
-import { Copy, Link, Users, QrCode, Sun, Moon } from 'lucide-react';
+import { Copy, Link, Users, QrCode, Sun, Moon, Heart } from 'lucide-react';
 
 interface RoomHeaderProps {
     roomId: string;
@@ -16,6 +16,7 @@ interface RoomHeaderProps {
     latency: number;
     userCount: number;
     onLeave: () => void;
+    onOpenFavorites?: () => void;
 }
 
 export const RoomHeader: React.FC<RoomHeaderProps> = ({
@@ -24,6 +25,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
     latency,
     userCount,
     onLeave,
+    onOpenFavorites,
 }) => {
     const [showQR, setShowQR] = useState(false);
     const joinUrl = `${window.location.origin}/join/${roomId}`;
@@ -97,6 +99,18 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
 
                 {/* Status & Actions */}
                 <div className="flex items-center gap-3 flex-wrap">
+                    {/* Favorites Button */}
+                    {onOpenFavorites && (
+                        <button
+                            onClick={onOpenFavorites}
+                            className="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 font-medium border border-red-500/20"
+                            title="Open Favorite Tracks"
+                        >
+                            <Heart className="w-3.5 h-3.5 fill-red-500 text-red-500" />
+                            <span>Favorites</span>
+                        </button>
+                    )}
+
                     {/* Theme Switcher Button */}
                     <button
                         onClick={toggleTheme}

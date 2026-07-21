@@ -29,7 +29,7 @@ interface UseRoomReturn {
     isHost: boolean;
     isInRoom: boolean;
     isLoading: boolean;
-    createRoom: (username: string) => void;
+    createRoom: (username: string, isPublic?: boolean) => void;
     joinRoom: (roomId: string, username: string) => void;
     leaveRoom: () => void;
     grantControl: (userId: string) => void;
@@ -190,14 +190,14 @@ export function useRoom({ socket, onRoomJoined, onError }: UseRoomOptions): UseR
 
     // ─── Actions ──────────────────────────────────────────────────────────────
 
-    const createRoom = useCallback((username: string) => {
+    const createRoom = useCallback((username: string, isPublic = true) => {
         if (!socket?.connected) {
             toast.error('Not connected to server');
             return;
         }
         usernameRef.current = username;
         setIsLoading(true);
-        socket.emit('create-room', { username });
+        socket.emit('create-room', { username, isPublic });
     }, [socket]);
 
     const joinRoom = useCallback((roomId: string, username: string) => {
