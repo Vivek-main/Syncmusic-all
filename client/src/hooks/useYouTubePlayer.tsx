@@ -87,6 +87,8 @@ export function useYouTubePlayer({
     const videoIdRef = useRef(videoId);
     const serverTimeOffsetRef = useRef(serverTimeOffset);
     const manualOffsetRef = useRef(manualOffset);
+    const lastSyncedPlayStateRef = useRef<boolean | null>(null);
+    const selectedQualityRef = useRef<string>('auto');
 
     // Keep refs in sync with state
     useEffect(() => { isHostRef.current = isHost; }, [isHost]);
@@ -268,15 +270,18 @@ export function useYouTubePlayer({
         if (!socket) return;
 
         const handleSyncState = ({ videoId: vId, playing: shouldPlay, currentTime: serverTime, serverTime: timestamp }: SyncState) => {
-            if (isHostRef.current && !initialVideoId) return; // Only host skips sync (unless late joining which shouldn't happen for host but just in case)
+            if (isHostRef.current && !initialVideoId) return; // Only host skips sync
             if (!playerRef.current) return;
+
+            const playerState = playerRef.current.getPlayerState?.();
+            const currentQuality = selectedQualityRef.current;
 
             // Load video if not loaded (late joiner)
             if (vId && videoIdRef.current !== vId) {
                 setVideoId(vId);
-                playerRef.current.loadVideoById(vId);
-            } else if (vId && playerRef.current.getPlayerState?.() === -1) {
-                playerRef.current.loadVideoById(vId);
+                (playerRef.current as any).loadVideoById?.({ videoId: vId, suggestedQuality: currentQuality });
+            } else if (vId && (playerState as number) === -1) {
+                (playerRef.current as any).loadVideoById?.({ videoId: vId, suggestedQuality: currentQuality });
             }
 
             // Convert server timestamp to local client time to calculate true elapsed time
@@ -287,12 +292,10 @@ export function useYouTubePlayer({
 
             const clientTime = playerRef.current.getCurrentTime();
             const diff = Math.abs(clientTime - adjustedServerTime);
-            
-            const playerState = playerRef.current.getPlayerState?.();
 
             // Only attempt position sync if the video is actually loaded/playing
             // If it's buffering or unstarted, let it load first to avoid stutter loops
-            if (playerState !== YTPlayerState.BUFFERING && playerState !== YTPlayerState.UNSTARTED) {
+            if (playerState !== YTPlayerState.BUFFERING && (playerState as number) !== -1) {
                 // Hard sync: seek immediately
                 if (diff > HARD_SYNC_THRESHOLD) {
                     playerRef.current.seekTo(adjustedServerTime, true);
@@ -316,11 +319,15 @@ export function useYouTubePlayer({
                 }
             }
 
-            // Handle play/pause sync
-            if (shouldPlay && playerState !== YTPlayerState.PLAYING && playerState !== YTPlayerState.BUFFERING) {
-                playerRef.current.playVideo();
-            } else if (!shouldPlay && playerState === YTPlayerState.PLAYING) {
-                playerRef.current.pauseVideo();
+            // Handle play/pause state synchronization ONLY if state actually changed
+            // to avoid spamming playVideo() every 1s on lagging devices causing stutter loops
+            if (lastSyncedPlayStateRef.current !== shouldPlay) {
+                lastSyncedPlayStateRef.current = shouldPlay;
+                if (shouldPlay && playerState !== YTPlayerState.PLAYING && playerState !== YTPlayerState.BUFFERING) {
+                    playerRef.current.playVideo();
+                } else if (!shouldPlay && playerState === YTPlayerState.PLAYING) {
+                    playerRef.current.pauseVideo();
+                }
             }
 
             setCurrentTime(clientTime);
@@ -337,6 +344,7 @@ export function useYouTubePlayer({
         const handlePlay = ({ currentTime: serverTime, serverTime: timestamp }: PlaybackEvent) => {
             if (!playerRef.current) return;
             lastRemoteActionTimeRef.current = Date.now();
+            lastSyncedPlayStateRef.current = true;
 
             // Compensate for latency using serverTimeOffset
             const localEventTime = timestamp + serverTimeOffsetRef.current;
@@ -358,6 +366,7 @@ export function useYouTubePlayer({
         const handlePause = ({ currentTime: serverTime }: PlaybackEvent) => {
             if (!playerRef.current) return;
             lastRemoteActionTimeRef.current = Date.now();
+            lastSyncedPlayStateRef.current = false;
 
             playerRef.current.pauseVideo();
             
@@ -503,15 +512,33 @@ export function useYouTubePlayer({
     }, []);
 
     const setQuality = useCallback((quality: string) => {
+        selectedQualityRef.current = quality;
         if (playerRef.current) {
             const player = playerRef.current as any;
+            const curTime = player.getCurrentTime?.() || 0;
+            const vId = videoIdRef.current;
+
             if (typeof player.setPlaybackQuality === 'function') {
                 player.setPlaybackQuality(quality);
             }
             if (typeof player.setSuggestedQuality === 'function') {
                 player.setSuggestedQuality(quality);
             }
-            toast.success(`Video quality set to ${quality}`);
+            if (typeof player.setPlaybackQualityRange === 'function') {
+                player.setPlaybackQualityRange(quality, quality);
+            }
+
+            // Force stream reload at requested resolution
+            if (vId && typeof player.loadVideoById === 'function') {
+                player.loadVideoById({
+                    videoId: vId,
+                    startSeconds: curTime,
+                    suggestedQuality: quality,
+                });
+            }
+
+            const qualityLabel = quality === 'auto' ? 'Auto' : quality.replace('hd', '').replace('large', '480p').replace('medium', '360p').replace('small', '240p').replace('tiny', '144p');
+            toast.success(`Video quality set to ${qualityLabel}`);
         }
     }, []);
 
