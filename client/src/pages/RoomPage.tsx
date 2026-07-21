@@ -19,7 +19,6 @@ import { ReactionsOverlay } from '@/components/ReactionsOverlay';
 import { DJSoundboard } from '@/components/DJSoundboard';
 import { LyricsDisplay } from '@/components/LyricsDisplay';
 import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
-import toast from 'react-hot-toast';
 import { Crown, SlidersHorizontal, Headphones, Radio, PictureInPicture2, Maximize2 } from 'lucide-react';
 
 const PLAYER_CONTAINER_ID = 'youtube-player';
@@ -82,61 +81,41 @@ export const RoomPage: React.FC<RoomPageProps> = ({
         initialVideoTitle: room.videoTitle,
     });
 
-    // ─── Sync Popup Live Countdown Notifications ─────────────────────────────
+    // ─── Sync Popup Live Countdown Banner (State-Driven 1s Ticks) ────────────
+    const [syncBanner, setSyncBanner] = React.useState<{ count: number; label: string; icon: string } | null>(null);
     const prevVideoIdRef = React.useRef(videoId);
     const prevPlayingRef = React.useRef(playing);
-    const countdownCleanupRef = React.useRef<(() => void) | null>(null);
+    const bannerIntervalRef = React.useRef<any>(null);
 
-    const startCountdownToast = (
-        initialSeconds: number,
-        prefix: string,
-        suffix: string,
-        icon: string,
-        successMessage: string
-    ) => {
-        if (countdownCleanupRef.current) {
-            countdownCleanupRef.current();
-        }
+    const triggerCountdown = (initialCount: number, labelText: string, icon: string) => {
+        if (bannerIntervalRef.current) clearInterval(bannerIntervalRef.current);
 
-        let secondsLeft = initialSeconds;
-        const toastId = toast.loading(`${prefix} ${secondsLeft} ${secondsLeft === 1 ? 'second' : 'seconds'} ${suffix}`, {
-            icon,
-            style: { borderRadius: '12px', background: '#131b2e', color: '#fff', border: '1px solid #1e293b' }
-        });
+        setSyncBanner({ count: initialCount, label: labelText, icon });
 
-        const interval = setInterval(() => {
-            secondsLeft -= 1;
-            if (secondsLeft > 0) {
-                toast.loading(`${prefix} ${secondsLeft} ${secondsLeft === 1 ? 'second' : 'seconds'} ${suffix}`, {
-                    id: toastId,
-                    icon,
-                    style: { borderRadius: '12px', background: '#131b2e', color: '#fff', border: '1px solid #1e293b' }
-                });
-            } else {
-                clearInterval(interval);
-                toast.success(successMessage, {
-                    id: toastId,
-                    duration: 2500,
-                    style: { borderRadius: '12px', background: '#131b2e', color: '#fff', border: '1px solid #1e293b' }
-                });
-            }
+        bannerIntervalRef.current = setInterval(() => {
+            setSyncBanner((prev: { count: number; label: string; icon: string } | null) => {
+                if (!prev) return null;
+                if (prev.count <= 1) {
+                    clearInterval(bannerIntervalRef.current);
+                    // Fade out banner after 2.5 seconds
+                    setTimeout(() => setSyncBanner(null), 2500);
+                    return { count: 0, label: 'Music is 100% Synced!', icon: '✨' };
+                }
+                return { ...prev, count: prev.count - 1 };
+            });
         }, 1000);
-
-        const cleanup = () => clearInterval(interval);
-        countdownCleanupRef.current = cleanup;
-        return cleanup;
     };
 
     React.useEffect(() => {
         if (videoId && videoId !== prevVideoIdRef.current) {
-            startCountdownToast(7, 'Music will sync in', '⏱️', '🎵', 'Music is 100% synced! 🎵');
+            triggerCountdown(7, 'Music will sync in', '🎵');
             prevVideoIdRef.current = videoId;
         }
     }, [videoId]);
 
     React.useEffect(() => {
         if (playing && !prevPlayingRef.current) {
-            startCountdownToast(5, 'Sync will be fixed in', '⚡', '⏳', 'Sync is 100% fixed! ✨');
+            triggerCountdown(5, 'Sync will be fixed in', '⚡');
         }
         prevPlayingRef.current = playing;
     }, [playing]);
@@ -182,7 +161,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({
     }, [togglePlay, seekTo, currentTime, duration]);
 
     return (
-        <div className="min-h-screen flex flex-col p-4 lg:p-6 relative">
+        <div className="min-h-screen flex flex-col p-4 lg:p-6 relative bg-[#f8fafc] dark:bg-[#0b0f17] text-slate-900 dark:text-slate-100 transition-colors duration-300">
             {/* Background Effects */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-primary-500/10 rounded-full blur-[120px]" />
@@ -190,6 +169,23 @@ export const RoomPage: React.FC<RoomPageProps> = ({
             </div>
             
             <ReactionsOverlay socket={socket} />
+
+            {/* Live Sync Banner Notification */}
+            {syncBanner && (
+                <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#131b2e]/95 backdrop-blur-xl border border-primary-500/40 text-white shadow-[0_10px_30px_rgba(0,0,0,0.5)] animate-bounce-in">
+                    <span className="text-xl">{syncBanner.icon}</span>
+                    <div className="flex items-center gap-2 font-semibold text-sm">
+                        <span>{syncBanner.label}</span>
+                        {syncBanner.count > 0 ? (
+                            <span className="px-2.5 py-0.5 rounded-lg bg-primary-500/20 text-primary-400 font-mono text-base border border-primary-500/40 animate-pulse">
+                                {syncBanner.count}s
+                            </span>
+                        ) : (
+                            <span className="text-green-400 font-bold">100%</span>
+                        )}
+                    </div>
+                </div>
+            )}
 
             <div className="max-w-7xl mx-auto space-y-4">
                 {/* Room Header */}

@@ -91,7 +91,7 @@ const UserListItem: React.FC<UserListItemProps> = ({
         <div
             className={cn(
                 'flex flex-col gap-2 px-3 py-2 rounded-xl transition-all border',
-                isCurrentUser ? 'bg-primary-50 dark:bg-primary-900/30 border-primary-200 dark:border-primary-700 shadow-sm' : 'bg-slate-50 dark:bg-dark-800 hover:bg-slate-100 dark:hover:bg-dark-700 border-slate-200 dark:border-dark-700'
+                isCurrentUser ? 'bg-primary-500/10 dark:bg-primary-900/40 border-primary-300 dark:border-primary-700 shadow-sm' : 'bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700/60'
             )}
         >
             <div className="flex items-center gap-3">
@@ -112,7 +112,7 @@ const UserListItem: React.FC<UserListItemProps> = ({
                         {user.username}
                     </span>
                     {isCurrentUser && (
-                        <span className="text-xs text-slate-500 font-medium">(you)</span>
+                        <span className="text-xs text-primary-600 dark:text-primary-400 font-semibold">(you)</span>
                     )}
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
