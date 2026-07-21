@@ -268,8 +268,16 @@ export const RoomPage: React.FC<RoomPageProps> = ({
                                     <PictureInPicture2 className="w-4 h-4" />
                                     <span className="hidden sm:inline">{isPiP ? 'Mini Player: ON' : 'Mini Player'}</span>
                                 </button>
-                                <button
-                                    onClick={() => setAudioOnly(!audioOnly)}
+                                 <button
+                                    onClick={() => {
+                                        const nextState = !audioOnly;
+                                        setAudioOnly(nextState);
+                                        if (nextState) {
+                                            setQuality('144p');
+                                        } else {
+                                            setQuality('auto');
+                                        }
+                                    }}
                                     className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 text-sm ${
                                         audioOnly
                                             ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'

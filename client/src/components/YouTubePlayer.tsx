@@ -31,7 +31,11 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
             <div
                 id={containerId}
                 className="absolute inset-0 w-full h-full bg-black"
-                style={{ opacity: audioOnly ? 0 : 1 }}
+                style={{
+                    opacity: audioOnly ? 0 : 1,
+                    visibility: audioOnly ? 'hidden' : 'visible',
+                    pointerEvents: audioOnly ? 'none' : 'auto'
+                }}
             />
 
             {/* Audio Only Overlay */}
