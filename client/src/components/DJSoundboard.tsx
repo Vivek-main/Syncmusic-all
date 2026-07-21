@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Socket } from 'socket.io-client';
-import { Radio } from 'lucide-react';
+import { Radio, Volume2, Sparkles, Disc } from 'lucide-react';
 
 interface DJSoundboardProps {
     socket: Socket | null;
@@ -8,10 +8,10 @@ interface DJSoundboardProps {
 }
 
 const EFFECTS = [
-    { id: 'airhorn', name: 'Airhorn', emoji: '🎺', color: 'from-amber-500 to-red-500' },
-    { id: 'applause', name: 'Cheer', emoji: '👏', color: 'from-green-500 to-emerald-600' },
-    { id: 'scratch', name: 'Scratch', emoji: '🎧', color: 'from-blue-500 to-indigo-600' },
-    { id: 'drumroll', name: 'Drumroll', emoji: '🥁', color: 'from-purple-500 to-pink-600' },
+    { id: 'airhorn', name: 'Airhorn', icon: Volume2, color: 'from-amber-500 to-red-500' },
+    { id: 'applause', name: 'Cheer', icon: Sparkles, color: 'from-green-500 to-emerald-600' },
+    { id: 'scratch', name: 'Scratch', icon: Disc, color: 'from-blue-500 to-indigo-600' },
+    { id: 'drumroll', name: 'Drumroll', icon: Radio, color: 'from-purple-500 to-pink-600' },
 ];
 
 export const DJSoundboard: React.FC<DJSoundboardProps> = ({ socket, roomId }) => {
@@ -135,16 +135,19 @@ export const DJSoundboard: React.FC<DJSoundboardProps> = ({ socket, roomId }) =>
                 <Radio className="w-4 h-4 text-primary-500" /> Live DJ Soundboard
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {EFFECTS.map((fx) => (
-                    <button
-                        key={fx.id}
-                        onClick={() => triggerEffect(fx.id)}
-                        className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-gradient-to-r ${fx.color} text-white font-medium text-xs shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer`}
-                    >
-                        <span className="text-base">{fx.emoji}</span>
-                        <span>{fx.name}</span>
-                    </button>
-                ))}
+                {EFFECTS.map((fx) => {
+                    const IconComponent = fx.icon;
+                    return (
+                        <button
+                            key={fx.id}
+                            onClick={() => triggerEffect(fx.id)}
+                            className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-gradient-to-r ${fx.color} text-white font-medium text-xs shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer`}
+                        >
+                            <IconComponent className="w-4 h-4" />
+                            <span>{fx.name}</span>
+                        </button>
+                    );
+                })}
             </div>
         </div>
     );

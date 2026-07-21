@@ -8,7 +8,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import { ConnectionStatus } from '@/types';
 import { cn } from '@/utils/cn';
-import { Copy, Link, Users, QrCode } from 'lucide-react';
+import { Copy, Link, Users, QrCode, Sun, Moon } from 'lucide-react';
 
 interface RoomHeaderProps {
     roomId: string;
@@ -103,7 +103,17 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
                         className="text-xs bg-slate-100 dark:bg-dark-700 hover:bg-slate-200 dark:hover:bg-dark-600 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 font-medium border border-slate-200 dark:border-slate-700"
                         title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
                     >
-                        {isDark ? '☀️ Light' : '🌙 Dark'}
+                        {isDark ? (
+                            <>
+                                <Sun className="w-3.5 h-3.5 text-amber-500" />
+                                <span>Light</span>
+                            </>
+                        ) : (
+                            <>
+                                <Moon className="w-3.5 h-3.5 text-indigo-400" />
+                                <span>Dark</span>
+                            </>
+                        )}
                     </button>
 
                     {/* Connection Status */}

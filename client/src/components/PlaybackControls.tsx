@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '@/utils/cn';
-import { RefreshCw, Volume2, SkipForward, Play, Pause, Sliders } from 'lucide-react';
+import { RefreshCw, Volume2, SkipForward, Play, Pause, Sliders, Vote } from 'lucide-react';
 import { Socket } from 'socket.io-client';
 
 interface PlaybackControlsProps {
@@ -265,14 +265,14 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
                     <button
                         onClick={handleVoteSkip}
                         className={cn(
-                            'text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 font-medium shadow-sm border',
+                            'text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 font-medium shadow-sm border',
                             skipVotes.userVoted
                                 ? 'bg-primary-500 text-white border-primary-600 shadow-md'
                                 : 'bg-slate-100 dark:bg-dark-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-dark-600 border-slate-200 dark:border-slate-700'
                         )}
                         title="Vote to skip current song"
                     >
-                        🗳️ Vote Skip ({skipVotes.votes}/{skipVotes.required})
+                        <Vote className="w-3.5 h-3.5" /> Vote Skip ({skipVotes.votes}/{skipVotes.required})
                     </button>
 
                     {!isHost && (

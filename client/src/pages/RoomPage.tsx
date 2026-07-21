@@ -19,7 +19,7 @@ import { ReactionsOverlay } from '@/components/ReactionsOverlay';
 import { DJSoundboard } from '@/components/DJSoundboard';
 import { LyricsDisplay } from '@/components/LyricsDisplay';
 import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
-import { Crown, SlidersHorizontal, Headphones, Radio, PictureInPicture2, Maximize2 } from 'lucide-react';
+import { Crown, SlidersHorizontal, Headphones, Radio, PictureInPicture2, Maximize2, Music, Zap, CheckCircle2 } from 'lucide-react';
 
 const PLAYER_CONTAINER_ID = 'youtube-player';
 
@@ -82,24 +82,24 @@ export const RoomPage: React.FC<RoomPageProps> = ({
     });
 
     // ─── Sync Popup Live Countdown Banner (State-Driven 1s Ticks) ────────────
-    const [syncBanner, setSyncBanner] = React.useState<{ count: number; label: string; icon: string } | null>(null);
+    const [syncBanner, setSyncBanner] = React.useState<{ count: number; label: string; type: 'song' | 'play' | 'success' } | null>(null);
     const prevVideoIdRef = React.useRef(videoId);
     const prevPlayingRef = React.useRef(playing);
     const bannerIntervalRef = React.useRef<any>(null);
 
-    const triggerCountdown = (initialCount: number, labelText: string, icon: string) => {
+    const triggerCountdown = (initialCount: number, labelText: string, type: 'song' | 'play') => {
         if (bannerIntervalRef.current) clearInterval(bannerIntervalRef.current);
 
-        setSyncBanner({ count: initialCount, label: labelText, icon });
+        setSyncBanner({ count: initialCount, label: labelText, type });
 
         bannerIntervalRef.current = setInterval(() => {
-            setSyncBanner((prev: { count: number; label: string; icon: string } | null) => {
+            setSyncBanner((prev: { count: number; label: string; type: 'song' | 'play' | 'success' } | null) => {
                 if (!prev) return null;
                 if (prev.count <= 1) {
                     clearInterval(bannerIntervalRef.current);
                     // Fade out banner after 2.5 seconds
                     setTimeout(() => setSyncBanner(null), 2500);
-                    return { count: 0, label: 'Music is 100% Synced!', icon: '✨' };
+                    return { count: 0, label: 'Music is 100% Synced!', type: 'success' };
                 }
                 return { ...prev, count: prev.count - 1 };
             });
@@ -108,14 +108,14 @@ export const RoomPage: React.FC<RoomPageProps> = ({
 
     React.useEffect(() => {
         if (videoId && videoId !== prevVideoIdRef.current) {
-            triggerCountdown(7, 'Music will sync in', '🎵');
+            triggerCountdown(7, 'Music will sync in', 'song');
             prevVideoIdRef.current = videoId;
         }
     }, [videoId]);
 
     React.useEffect(() => {
         if (playing && !prevPlayingRef.current) {
-            triggerCountdown(7, 'Sync will be fixed in', '⚡');
+            triggerCountdown(7, 'Sync will be fixed in', 'play');
         }
         prevPlayingRef.current = playing;
     }, [playing]);
@@ -173,7 +173,13 @@ export const RoomPage: React.FC<RoomPageProps> = ({
             {/* Live Sync Banner Notification */}
             {syncBanner && (
                 <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#131b2e]/95 backdrop-blur-xl border border-primary-500/40 text-white shadow-[0_10px_30px_rgba(0,0,0,0.5)] animate-bounce-in">
-                    <span className="text-xl">{syncBanner.icon}</span>
+                    {syncBanner.type === 'song' ? (
+                        <Music className="w-5 h-5 text-primary-400" />
+                    ) : syncBanner.type === 'play' ? (
+                        <Zap className="w-5 h-5 text-yellow-400" />
+                    ) : (
+                        <CheckCircle2 className="w-5 h-5 text-green-400" />
+                    )}
                     <div className="flex items-center gap-2 font-semibold text-sm">
                         <span>{syncBanner.label}</span>
                         {syncBanner.count > 0 ? (
@@ -181,7 +187,9 @@ export const RoomPage: React.FC<RoomPageProps> = ({
                                 {syncBanner.count}s
                             </span>
                         ) : (
-                            <span className="text-green-400 font-bold">100%</span>
+                            <span className="text-green-400 font-bold flex items-center gap-1">
+                                <CheckCircle2 className="w-4 h-4" /> 100% Synced
+                            </span>
                         )}
                     </div>
                 </div>
