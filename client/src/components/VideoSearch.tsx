@@ -31,6 +31,8 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState<number>(-1);
 
+    const clientSearchCacheRef = React.useRef<Map<string, SearchResult[]>>(new Map());
+
     const performSearch = async (searchQuery: string) => {
         const trimmed = searchQuery.trim();
         setSuggestions([]); // Clear suggestions when searching
@@ -47,6 +49,14 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
         const playlistId = extractPlaylistId(trimmed);
         if (directVideoId || playlistId) return;
 
+        const cacheKey = trimmed.toLowerCase();
+        if (clientSearchCacheRef.current.has(cacheKey)) {
+            setResults(clientSearchCacheRef.current.get(cacheKey) || []);
+            setError('');
+            setIsLoading(false);
+            return;
+        }
+
         setIsLoading(true);
         setError('');
 
@@ -58,6 +68,7 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
             
             const data = await res.json();
             if (data.results && data.results.length > 0) {
+                clientSearchCacheRef.current.set(cacheKey, data.results);
                 setResults(data.results);
             } else {
                 setError('No results found.');

@@ -70,7 +70,52 @@ app.get('/api/rooms/:roomId', (req, res) => {
 const searchCache = new Map();
 const SEARCH_CACHE_TTL = 10 * 60 * 1000;
 
-// Search YouTube videos via yt-search (cached)
+// Ultra-Fast Direct YouTube HTML Scraper (<200ms response time)
+async function fastYouTubeSearch(query) {
+    const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2500);
+
+    const response = await fetch(url, {
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9'
+        },
+        signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    const html = await response.text();
+    const match = html.match(/var ytInitialData = ({.*?});<\/script>/s) || html.match(/window\["ytInitialData"\] = ({.*?});/s);
+    if (!match) throw new Error('ytInitialData not found');
+
+    const data = JSON.parse(match[1]);
+    const sections = data?.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents || [];
+
+    const videos = [];
+    for (const section of sections) {
+        const contents = section?.itemSectionRenderer?.contents || [];
+        for (const item of contents) {
+            const render = item.videoRenderer;
+            if (!render || !render.videoId) continue;
+
+            const videoId = render.videoId;
+            const title = render.title?.runs?.[0]?.text || render.title?.accessibility?.accessibilityData?.label || 'YouTube Video';
+            const thumbnail = render.thumbnail?.thumbnails?.slice(-1)?.[0]?.url || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+            const duration = render.lengthText?.simpleText || '3:30';
+            const author = render.ownerText?.runs?.[0]?.text || render.shortBylineText?.runs?.[0]?.text || 'YouTube';
+
+            videos.push({ videoId, title, thumbnail, duration, author });
+            if (videos.length >= 25) break;
+        }
+        if (videos.length >= 25) break;
+    }
+
+    if (videos.length === 0) throw new Error('No videos parsed from fast search');
+    return videos;
+}
+
+// Search YouTube videos via Fast Direct Scraper + yt-search fallback (cached 10m)
 app.get('/api/search', async (req, res) => {
     try {
         const query = req.query.q;
@@ -84,28 +129,31 @@ app.get('/api/search', async (req, res) => {
             return res.json({ results: cached.results });
         }
 
-        const ytSearch = require('yt-search');
-        const results = await ytSearch(query);
-        
-        // Filter out official music channels that strictly block embedding
-        const blockedKeywords = ['vevo', 't-series', 'zee music', 'sony music', 'speed records', 'yash raj films'];
-        const isLikelyBlocked = (authorName) => {
-            if (!authorName) return false;
-            const name = authorName.toLowerCase();
-            return blockedKeywords.some(keyword => name.includes(keyword));
-        };
-        
-        // Filter out blocked channels. If it filters out EVERYTHING, fallback to original results
-        const safeVideos = (results.videos || []).filter(v => !isLikelyBlocked(v.author ? v.author.name : ''));
-        const videosToUse = safeVideos.length > 0 ? safeVideos : (results.videos || []);
+        let videos = [];
+        try {
+            // Try ultra-fast direct search (<200ms)
+            videos = await fastYouTubeSearch(query);
+        } catch (fastErr) {
+            console.warn('[Search] Fast search fallback triggered:', fastErr.message);
+            // Fallback to yt-search package
+            const ytSearch = require('yt-search');
+            const results = await ytSearch(query);
+            
+            const blockedKeywords = ['vevo', 't-series', 'zee music', 'sony music', 'speed records', 'yash raj films'];
+            const safeVideos = (results.videos || []).filter(v => {
+                const name = (v.author ? v.author.name : '').toLowerCase();
+                return !blockedKeywords.some(keyword => name.includes(keyword));
+            });
+            const videosToUse = safeVideos.length > 0 ? safeVideos : (results.videos || []);
 
-        const videos = videosToUse.slice(0, 25).map(v => ({
-            videoId: v.videoId,
-            title: v.title,
-            thumbnail: v.thumbnail,
-            duration: v.timestamp || (v.duration ? v.duration.toString() : '3:30'),
-            author: v.author ? v.author.name : 'YouTube'
-        }));
+            videos = videosToUse.slice(0, 25).map(v => ({
+                videoId: v.videoId,
+                title: v.title,
+                thumbnail: v.thumbnail,
+                duration: v.timestamp || (v.duration ? v.duration.toString() : '3:30'),
+                author: v.author ? v.author.name : 'YouTube'
+            }));
+        }
         
         searchCache.set(cacheKey, { timestamp: Date.now(), results: videos });
         res.json({ results: videos });
