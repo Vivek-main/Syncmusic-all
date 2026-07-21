@@ -82,28 +82,61 @@ export const RoomPage: React.FC<RoomPageProps> = ({
         initialVideoTitle: room.videoTitle,
     });
 
-    // ─── Sync Popup Notifications ─────────────────────────────────────────────
+    // ─── Sync Popup Live Countdown Notifications ─────────────────────────────
     const prevVideoIdRef = React.useRef(videoId);
     const prevPlayingRef = React.useRef(playing);
+    const countdownCleanupRef = React.useRef<(() => void) | null>(null);
+
+    const startCountdownToast = (
+        initialSeconds: number,
+        prefix: string,
+        suffix: string,
+        icon: string,
+        successMessage: string
+    ) => {
+        if (countdownCleanupRef.current) {
+            countdownCleanupRef.current();
+        }
+
+        let secondsLeft = initialSeconds;
+        const toastId = toast.loading(`${prefix} ${secondsLeft} ${secondsLeft === 1 ? 'second' : 'seconds'} ${suffix}`, {
+            icon,
+            style: { borderRadius: '12px', background: '#131b2e', color: '#fff', border: '1px solid #1e293b' }
+        });
+
+        const interval = setInterval(() => {
+            secondsLeft -= 1;
+            if (secondsLeft > 0) {
+                toast.loading(`${prefix} ${secondsLeft} ${secondsLeft === 1 ? 'second' : 'seconds'} ${suffix}`, {
+                    id: toastId,
+                    icon,
+                    style: { borderRadius: '12px', background: '#131b2e', color: '#fff', border: '1px solid #1e293b' }
+                });
+            } else {
+                clearInterval(interval);
+                toast.success(successMessage, {
+                    id: toastId,
+                    duration: 2500,
+                    style: { borderRadius: '12px', background: '#131b2e', color: '#fff', border: '1px solid #1e293b' }
+                });
+            }
+        }, 1000);
+
+        const cleanup = () => clearInterval(interval);
+        countdownCleanupRef.current = cleanup;
+        return cleanup;
+    };
 
     React.useEffect(() => {
         if (videoId && videoId !== prevVideoIdRef.current) {
-            toast('Music will sync in 7 seconds ⏱️', {
-                icon: '🎵',
-                duration: 4000,
-                style: { borderRadius: '12px', background: '#1e293b', color: '#fff' }
-            });
+            startCountdownToast(7, 'Music will sync in', '⏱️', '🎵', 'Music is 100% synced! 🎵');
             prevVideoIdRef.current = videoId;
         }
     }, [videoId]);
 
     React.useEffect(() => {
         if (playing && !prevPlayingRef.current) {
-            toast('Sync will be fixed in 5 seconds ⚡', {
-                icon: '⏳',
-                duration: 3500,
-                style: { borderRadius: '12px', background: '#1e293b', color: '#fff' }
-            });
+            startCountdownToast(5, 'Sync will be fixed in', '⚡', '⏳', 'Sync is 100% fixed! ✨');
         }
         prevPlayingRef.current = playing;
     }, [playing]);
