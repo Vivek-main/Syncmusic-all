@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { Music, RefreshCw, Users, Smartphone, Zap, Rocket, Target } from 'lucide-react';
+import { Music, RefreshCw, Users, Smartphone, Zap, Rocket, Target, Shuffle, Radio } from 'lucide-react';
 
 interface HomePageProps {
     onCreateRoom: (username: string, isPublic?: boolean) => void;
@@ -67,6 +67,22 @@ export const HomePage: React.FC<HomePageProps> = ({
         onCreateRoom(username.trim(), isPublicRoom);
     };
 
+    const handleQuickJoin = () => {
+        if (!username.trim()) {
+            toast.error('Enter your name first to quick join!');
+            return;
+        }
+        if (publicRooms.length === 0) {
+            toast.error('No public parties live right now. Create one!');
+            return;
+        }
+        // Pick a random public room
+        const randomRoom = publicRooms[Math.floor(Math.random() * publicRooms.length)];
+        localStorage.setItem('musicsync_username', username.trim());
+        toast.success(`🎲 Jumping into a live party!`);
+        onJoinRoom(randomRoom.id, username.trim());
+    };
+
     const handleJoin = (e: React.FormEvent) => {
         e.preventDefault();
         if (!username.trim()) {
@@ -113,6 +129,28 @@ export const HomePage: React.FC<HomePageProps> = ({
                             {f.icon} {f.text}
                         </span>
                     ))}
+                </div>
+
+                {/* Quick Join Random Party Button */}
+                <div className="mt-6">
+                    <button
+                        onClick={handleQuickJoin}
+                        disabled={publicRooms.length === 0}
+                        className={`group relative inline-flex items-center gap-2.5 px-6 py-3 rounded-2xl font-semibold text-sm transition-all duration-300 ${
+                            publicRooms.length > 0
+                                ? 'bg-gradient-to-r from-primary-600 to-secondary-500 text-white shadow-[0_4px_20px_rgba(139,92,246,0.35)] hover:shadow-[0_6px_28px_rgba(139,92,246,0.5)] hover:scale-105 cursor-pointer'
+                                : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                        }`}
+                    >
+                        <Shuffle className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+                        🎲 Quick Join Random Party
+                        {publicRooms.length > 0 && (
+                            <span className="flex items-center gap-1 bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">
+                                <Radio className="w-3 h-3 animate-pulse" />
+                                {publicRooms.length} Live
+                            </span>
+                        )}
+                    </button>
                 </div>
             </div>
 

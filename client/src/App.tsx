@@ -72,7 +72,7 @@ function AppContent() {
     }, [leaveRoom, navigate]);
 
     return (
-        <div className="min-h-screen bg-[#f9f9f9]">
+        <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0b0f17] transition-colors duration-300">
             <ConnectionBanner status={connectionStatus} />
 
             {isInRoom && room ? (
@@ -99,14 +99,7 @@ function AppContent() {
             <Toaster
                 position="bottom-right"
                 toastOptions={{
-                    style: {
-                        background: '#fff',
-                        color: '#1f2937',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '12px',
-                        fontSize: '14px',
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-                    },
+                    className: '!bg-white dark:!bg-[#1e293b] !text-slate-900 dark:!text-white !border !border-slate-200 dark:!border-slate-700 !rounded-xl !text-sm !shadow-lg',
                     duration: 3000,
                 }}
             />

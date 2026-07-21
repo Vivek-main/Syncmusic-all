@@ -88,7 +88,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
                             </span>
                             <button
                                 onClick={copyRoomId}
-                                className="text-primary-600 hover:text-primary-700 transition-colors p-1"
+                                className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors p-1"
                                 title="Copy Room ID"
                             >
                                 <Copy className="w-5 h-5" />
@@ -114,7 +114,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
                     {/* Theme Switcher Button */}
                     <button
                         onClick={toggleTheme}
-                        className="text-xs bg-slate-100 dark:bg-dark-700 hover:bg-slate-200 dark:hover:bg-dark-600 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 font-medium border border-slate-200 dark:border-slate-700"
+                        className="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 font-medium border border-slate-200 dark:border-slate-700"
                         title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
                     >
                         {isDark ? (
@@ -142,9 +142,11 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
                     {latency > 0 && connectionStatus === 'connected' && (
                         <div className={cn(
                             'text-xs font-mono font-medium px-2 py-0.5 rounded-full border',
-                            latency < 50 ? 'text-green-700 bg-green-50 border-green-200' :
-                                latency < 150 ? 'text-yellow-700 bg-yellow-50 border-yellow-200' :
-                                    'text-red-700 bg-red-50 border-red-200'
+                            latency < 50
+                                ? 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700/50'
+                                : latency < 150
+                                    ? 'text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/30 border-yellow-200 dark:border-yellow-700/50'
+                                    : 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700/50'
                         )}>
                             {latency}ms
                         </div>
@@ -158,7 +160,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
                     {/* QR Code Button */}
                     <button
                         onClick={() => setShowQR(!showQR)}
-                        className="text-xs bg-slate-100 dark:bg-dark-700 hover:bg-slate-200 dark:hover:bg-dark-600 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 font-medium border border-slate-200 dark:border-slate-700"
+                        className="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 font-medium border border-slate-200 dark:border-slate-700"
                     >
                         <QrCode className="w-3.5 h-3.5" /> QR
                     </button>
@@ -166,7 +168,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
                     {/* Share Link */}
                     <button
                         onClick={copyJoinLink}
-                        className="text-xs bg-slate-100 dark:bg-dark-700 hover:bg-slate-200 dark:hover:bg-dark-600 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 font-medium border border-slate-200 dark:border-slate-700"
+                        className="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 font-medium border border-slate-200 dark:border-slate-700"
                     >
                         <Link className="w-3.5 h-3.5" /> Share
                     </button>
@@ -174,7 +176,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
                     {/* Leave Room */}
                     <button
                         onClick={onLeave}
-                        className="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg transition-colors font-medium border border-red-200"
+                        className="text-xs bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 px-3 py-1.5 rounded-lg transition-colors font-medium border border-red-200 dark:border-red-800/50"
                     >
                         Leave
                     </button>
@@ -183,16 +185,16 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
 
             {/* QR Code Modal */}
             {showQR && (
-                <div className="mt-4 flex flex-col items-center gap-3 animate-fade-in p-4 bg-white/80 rounded-xl border border-slate-200 backdrop-blur-xl shadow-lg">
+                <div className="mt-4 flex flex-col items-center gap-3 animate-fade-in p-4 bg-white/80 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 backdrop-blur-xl shadow-lg">
                     <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-100">
                         <QRCodeSVG value={joinUrl} size={150} />
                     </div>
-                    <p className="text-slate-500 text-xs text-center font-medium">
+                    <p className="text-slate-500 dark:text-slate-400 text-xs text-center font-medium">
                         Scan to join this room
                     </p>
                     <button
                         onClick={() => setShowQR(false)}
-                        className="text-xs text-slate-500 hover:text-slate-700 font-medium transition-colors"
+                        className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-medium transition-colors"
                     >
                         Close
                     </button>
@@ -200,4 +202,4 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
             )}
         </div>
     );
-};
+};
