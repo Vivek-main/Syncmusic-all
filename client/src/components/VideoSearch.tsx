@@ -289,13 +289,13 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
                         <button
                             key={index}
                             onClick={() => handleSuggestionClick(suggestion)}
-                            className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors text-left border text-sm font-medium ${
+                            className={`w-full flex items-center gap-2 p-2.5 rounded-xl transition-all text-left border text-sm font-medium ${
                                 index === selectedSuggestionIndex
-                                    ? 'bg-primary-50 border-primary-300 text-primary-900 dark:bg-primary-900/30 dark:border-primary-600 dark:text-primary-200'
-                                    : 'bg-white hover:bg-slate-50 border-slate-100 text-slate-700 dark:bg-dark-800 dark:hover:bg-dark-700 dark:border-dark-700 dark:text-slate-200'
+                                    ? 'bg-primary-500/20 border-primary-500/40 text-primary-700 dark:text-primary-300 font-semibold shadow-sm'
+                                    : 'bg-white dark:bg-slate-800/70 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700/60 text-slate-800 dark:text-slate-200'
                             }`}
                         >
-                            <Search className="w-3.5 h-3.5 text-slate-400" />
+                            <Search className="w-3.5 h-3.5 text-slate-400 dark:text-slate-400" />
                             <span>{suggestion}</span>
                         </button>
                     ))}
@@ -305,16 +305,16 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
             {results.length > 0 && (
                 <div className="mt-4 space-y-2 max-h-[400px] overflow-y-auto scrollbar-thin pr-1">
                     <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Search Results</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Search Results</span>
                         <button 
                             onClick={() => setResults([])}
-                            className="text-xs text-slate-500 hover:text-slate-800 font-medium transition-colors"
+                            className="text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-medium transition-colors"
                         >
                             Clear
                         </button>
                     </div>
                     {results.map(result => (
-                        <div key={result.videoId} className="flex gap-2 w-full p-2.5 rounded-xl hover:bg-slate-50 transition-colors bg-white border border-slate-100 shadow-sm hover:shadow">
+                        <div key={result.videoId} className="flex gap-2 w-full p-2.5 rounded-xl transition-all bg-white dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700/60 text-slate-900 dark:text-white shadow-sm">
                             <button
                                 onClick={() => handleSelectResult(result)}
                                 className="flex items-start gap-3 flex-1 text-left"
@@ -322,16 +322,16 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
                                 <img 
                                     src={result.thumbnail} 
                                     alt="" 
-                                    className="w-24 h-16 object-cover rounded-lg bg-slate-100 shrink-0 border border-slate-200/50"
+                                    className="w-24 h-16 object-cover rounded-lg bg-slate-100 dark:bg-slate-900 shrink-0 border border-slate-200/50 dark:border-slate-700/50"
                                 />
                                 <div className="flex flex-col flex-1 min-w-0 py-0.5">
-                                    <span className="text-sm text-slate-900 font-semibold line-clamp-2 leading-tight">
+                                    <span className="text-sm text-slate-900 dark:text-white font-semibold line-clamp-2 leading-tight">
                                         {result.title}
                                     </span>
-                                    <span className="text-xs text-slate-600 mt-1.5 line-clamp-1 font-medium flex items-center gap-1">
+                                    <span className="text-xs text-slate-600 dark:text-slate-400 mt-1.5 line-clamp-1 font-medium flex items-center gap-1">
                                         {result.author}
-                                        <span className="w-1 h-1 rounded-full bg-slate-300" />
-                                        <span className="text-slate-500">{result.duration}</span>
+                                        <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                                        <span className="text-slate-500 dark:text-slate-400">{result.duration}</span>
                                     </span>
                                 </div>
                             </button>
@@ -340,7 +340,7 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
                                     onAddToQueue(result);
                                     toast.success('Added to queue!', { icon: <Plus className="w-4 h-4 text-primary-500" /> });
                                 }}
-                                className="p-2 h-fit bg-primary-50 text-primary-600 hover:bg-primary-100 rounded-lg transition-colors border border-primary-100 shrink-0"
+                                className="p-2 h-fit bg-primary-500/10 text-primary-600 dark:text-primary-400 hover:bg-primary-500 hover:text-white rounded-lg transition-colors border border-primary-500/20 shrink-0"
                                 title="Add to Queue"
                             >
                                 <Plus className="w-5 h-5" />

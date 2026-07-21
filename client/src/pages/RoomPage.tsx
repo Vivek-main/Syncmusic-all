@@ -115,7 +115,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({
 
     React.useEffect(() => {
         if (playing && !prevPlayingRef.current) {
-            triggerCountdown(5, 'Sync will be fixed in', '⚡');
+            triggerCountdown(7, 'Sync will be fixed in', '⚡');
         }
         prevPlayingRef.current = playing;
     }, [playing]);
