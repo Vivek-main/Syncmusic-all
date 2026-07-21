@@ -88,7 +88,22 @@ export function useYouTubePlayer({
     const serverTimeOffsetRef = useRef(serverTimeOffset);
     const manualOffsetRef = useRef(manualOffset);
     const lastSyncedPlayStateRef = useRef<boolean | null>(null);
-    const selectedQualityRef = useRef<string>('auto');
+    const selectedQualityRef = useRef<string>('default');
+    const lastPlayCmdTimeRef = useRef<number>(0);
+    const lastPauseCmdTimeRef = useRef<number>(0);
+
+    // Helper to map UI quality labels to official YouTube API quality strings
+    const mapQualityToYT = (q: string): string => {
+        switch (q.toLowerCase()) {
+            case '144p': case 'tiny': return 'tiny';
+            case '240p': case 'small': return 'small';
+            case '360p': case 'medium': return 'medium';
+            case '480p': case 'large': return 'large';
+            case '720p': case 'hd720': return 'hd720';
+            case '1080p': case 'hd1080': return 'hd1080';
+            default: return 'default';
+        }
+    };
 
     // Keep refs in sync with state
     useEffect(() => { isHostRef.current = isHost; }, [isHost]);
@@ -319,15 +334,16 @@ export function useYouTubePlayer({
                 }
             }
 
-            // Handle play/pause state synchronization ONLY if state actually changed
-            // to avoid spamming playVideo() every 1s on lagging devices causing stutter loops
-            if (lastSyncedPlayStateRef.current !== shouldPlay) {
-                lastSyncedPlayStateRef.current = shouldPlay;
-                if (shouldPlay && playerState !== YTPlayerState.PLAYING && playerState !== YTPlayerState.BUFFERING) {
-                    playerRef.current.playVideo();
-                } else if (!shouldPlay && playerState === YTPlayerState.PLAYING) {
-                    playerRef.current.pauseVideo();
-                }
+            // Handle play/pause state synchronization with 2000ms cooldown lock to eliminate stutter loops
+            const now = Date.now();
+            if (shouldPlay && playerState === YTPlayerState.PAUSED && (now - lastPlayCmdTimeRef.current > 2000)) {
+                lastPlayCmdTimeRef.current = now;
+                lastSyncedPlayStateRef.current = true;
+                playerRef.current.playVideo();
+            } else if (!shouldPlay && playerState === YTPlayerState.PLAYING && (now - lastPauseCmdTimeRef.current > 2000)) {
+                lastPauseCmdTimeRef.current = now;
+                lastSyncedPlayStateRef.current = false;
+                playerRef.current.pauseVideo();
             }
 
             setCurrentTime(clientTime);
@@ -512,21 +528,42 @@ export function useYouTubePlayer({
     }, []);
 
     const setQuality = useCallback((quality: string) => {
-        selectedQualityRef.current = quality;
+        const ytQuality = mapQualityToYT(quality);
+        selectedQualityRef.current = ytQuality;
         if (playerRef.current) {
             const player = playerRef.current as any;
+            const curTime = player.getCurrentTime?.() || 0;
+            const vId = videoIdRef.current;
+
             if (typeof player.setPlaybackQuality === 'function') {
-                player.setPlaybackQuality(quality);
+                player.setPlaybackQuality(ytQuality);
             }
             if (typeof player.setSuggestedQuality === 'function') {
-                player.setSuggestedQuality(quality);
+                player.setSuggestedQuality(ytQuality);
             }
             if (typeof player.setPlaybackQualityRange === 'function') {
-                player.setPlaybackQualityRange(quality, quality);
+                player.setPlaybackQualityRange(ytQuality, ytQuality);
             }
 
-            const qualityLabel = quality === 'auto' || quality === 'default' ? 'Auto' : quality.replace('hd', '').replace('large', '480p').replace('medium', '360p').replace('small', '240p').replace('tiny', '144p');
-            toast.success(`Video quality set to ${qualityLabel}`);
+            // Force YouTube player to switch resolution streams immediately
+            if (vId && typeof player.loadVideoById === 'function') {
+                player.loadVideoById({
+                    videoId: vId,
+                    startSeconds: curTime,
+                    suggestedQuality: ytQuality,
+                });
+            }
+
+            const labels: Record<string, string> = {
+                tiny: '144p',
+                small: '240p',
+                medium: '360p',
+                large: '480p',
+                hd720: '720p',
+                hd1080: '1080p',
+                default: 'Auto'
+            };
+            toast.success(`Video quality set to ${labels[ytQuality] || quality}`);
         }
     }, []);
 
