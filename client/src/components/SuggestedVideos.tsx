@@ -29,26 +29,21 @@ export const SuggestedVideos: React.FC<SuggestedVideosProps> = ({
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        if (!currentVideoId || !currentVideoTitle) {
-            setSuggestions([]);
-            return;
-        }
-
         const fetchSuggestions = async () => {
             setIsLoading(true);
             try {
-                // Generate a search query based on the current video title to find related content
-                // Remove generic words like "Official Video" or "Lyrics" to get better recommendations
-                const cleanQuery = currentVideoTitle
-                    .replace(/official video/i, '')
-                    .replace(/lyrics/i, '')
-                    .replace(/music video/i, '')
-                    .trim();
+                const searchQuery = currentVideoTitle
+                    ? currentVideoTitle
+                        .replace(/official video/i, '')
+                        .replace(/lyrics/i, '')
+                        .replace(/music video/i, '')
+                        .trim() + ' song'
+                    : 'top hit music songs';
 
                 const localBackendUrl = `${window.location.protocol}//${window.location.hostname}:3001`;
                 const API_URL = import.meta.env.VITE_SOCKET_URL || localBackendUrl;
                 
-                const res = await fetch(`${API_URL}/api/search?q=${encodeURIComponent(cleanQuery + ' song')}`);
+                const res = await fetch(`${API_URL}/api/search?q=${encodeURIComponent(searchQuery)}`);
                 if (!res.ok) throw new Error('Search failed');
                 
                 const data = await res.json();
@@ -63,12 +58,9 @@ export const SuggestedVideos: React.FC<SuggestedVideosProps> = ({
             }
         };
 
-        // Add a small delay so we don't spam the API immediately when typing or changing fast
-        const timeout = setTimeout(fetchSuggestions, 800);
+        const timeout = setTimeout(fetchSuggestions, 300);
         return () => clearTimeout(timeout);
     }, [currentVideoId, currentVideoTitle]);
-
-    if (!currentVideoId || !isHost) return null;
 
     if (isLoading) {
         return (
@@ -102,10 +94,15 @@ export const SuggestedVideos: React.FC<SuggestedVideosProps> = ({
                     <div 
                         key={video.videoId}
                         onClick={() => {
-                            onVideoSelect(video.videoId, video.title);
-                            toast.success('Video loaded!', { icon: <Play className="w-4 h-4 text-green-500" /> });
+                            if (isHost) {
+                                onVideoSelect(video.videoId, video.title);
+                                toast.success('Video loaded!', { icon: <Play className="w-4 h-4 text-green-500" /> });
+                            } else {
+                                onAddToQueue(video);
+                                toast.success('Added to queue!', { icon: <Plus className="w-4 h-4 text-primary-500" /> });
+                            }
                         }}
-                        className="group flex flex-col gap-2 cursor-pointer bg-slate-50 dark:bg-dark-800 hover:bg-slate-100 dark:hover:bg-dark-700 p-2.5 rounded-xl border border-slate-100 dark:border-dark-700 transition-all duration-200"
+                        className="group flex flex-col gap-2 cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/60 transition-all duration-200"
                     >
                         <div className="relative aspect-video rounded-lg overflow-hidden bg-black">
                             <img 
