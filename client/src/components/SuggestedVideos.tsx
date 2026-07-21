@@ -27,40 +27,75 @@ export const SuggestedVideos: React.FC<SuggestedVideosProps> = ({
 }) => {
     const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isFetchingMore, setIsFetchingMore] = useState(false);
+    const [page, setPage] = useState(1);
+    const containerRef = React.useRef<HTMLDivElement>(null);
+
+    // Clean up video title for high relevance
+    const getCleanTitle = (title: string | null) => {
+        if (!title) return 'top hit music songs';
+        return title
+            .replace(/\(official video\)/gi, '')
+            .replace(/official music video/gi, '')
+            .replace(/official video/gi, '')
+            .replace(/\(lyrics\)/gi, '')
+            .replace(/\[.*\]/g, '')
+            .replace(/full video/gi, '')
+            .replace(/hd 4k/gi, '')
+            .trim();
+    };
+
+    const fetchSuggestions = async (pageNum = 1, append = false) => {
+        if (append) setIsFetchingMore(true);
+        else setIsLoading(true);
+
+        try {
+            const cleanTitle = getCleanTitle(currentVideoTitle);
+            const queryModifiers = ['', 'song', 'remix', 'lofi', 'full video', 'unplugged'];
+            const modifier = queryModifiers[(pageNum - 1) % queryModifiers.length];
+            const searchQuery = `${cleanTitle} ${modifier}`.trim();
+
+            const localBackendUrl = `${window.location.protocol}//${window.location.hostname}:3001`;
+            const API_URL = import.meta.env.VITE_SOCKET_URL || localBackendUrl;
+            
+            const res = await fetch(`${API_URL}/api/search?q=${encodeURIComponent(searchQuery)}`);
+            if (!res.ok) throw new Error('Search failed');
+            
+            const data = await res.json();
+            if (data.results && data.results.length > 0) {
+                const filtered = data.results.filter((v: SearchResult) => v.videoId !== currentVideoId);
+                setSuggestions(prev => {
+                    if (append) {
+                        const existingIds = new Set(prev.map(p => p.videoId));
+                        const newUnique = filtered.filter((f: SearchResult) => !existingIds.has(f.videoId));
+                        return [...prev, ...newUnique];
+                    }
+                    return filtered;
+                });
+            }
+        } catch (err) {
+            console.error('Failed to fetch suggestions:', err);
+        } finally {
+            setIsLoading(false);
+            setIsFetchingMore(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchSuggestions = async () => {
-            setIsLoading(true);
-            try {
-                const searchQuery = currentVideoTitle
-                    ? currentVideoTitle
-                        .replace(/official video/i, '')
-                        .replace(/lyrics/i, '')
-                        .replace(/music video/i, '')
-                        .trim() + ' song'
-                    : 'top hit music songs';
-
-                const localBackendUrl = `${window.location.protocol}//${window.location.hostname}:3001`;
-                const API_URL = import.meta.env.VITE_SOCKET_URL || localBackendUrl;
-                
-                const res = await fetch(`${API_URL}/api/search?q=${encodeURIComponent(searchQuery)}`);
-                if (!res.ok) throw new Error('Search failed');
-                
-                const data = await res.json();
-                if (data.results && data.results.length > 0) {
-                    const filtered = data.results.filter((v: SearchResult) => v.videoId !== currentVideoId);
-                    setSuggestions(filtered.slice(0, 20)); // Show up to 20 suggestions
-                }
-            } catch (err) {
-                console.error('Failed to fetch suggestions:', err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        const timeout = setTimeout(fetchSuggestions, 300);
+        setPage(1);
+        const timeout = setTimeout(() => fetchSuggestions(1, false), 300);
         return () => clearTimeout(timeout);
     }, [currentVideoId, currentVideoTitle]);
+
+    // Endless Infinite Scroll Listener
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
+        if (scrollHeight - (scrollTop + clientHeight) < 100 && !isLoading && !isFetchingMore) {
+            const nextPage = page + 1;
+            setPage(nextPage);
+            fetchSuggestions(nextPage, true);
+        }
+    };
 
     if (isLoading) {
         return (
@@ -89,7 +124,11 @@ export const SuggestedVideos: React.FC<SuggestedVideosProps> = ({
                 </h3>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-96 overflow-y-auto pr-1 scrollbar-thin">
+            <div 
+                ref={containerRef}
+                onScroll={handleScroll}
+                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-96 overflow-y-auto pr-1 scrollbar-thin"
+            >
                 {suggestions.map((video) => (
                     <div 
                         key={video.videoId}
@@ -142,6 +181,12 @@ export const SuggestedVideos: React.FC<SuggestedVideosProps> = ({
                         </div>
                     </div>
                 ))}
+                {isFetchingMore && (
+                    <div className="col-span-full py-4 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                        <span className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                        Loading endless recommendations...
+                    </div>
+                )}
             </div>
         </div>
     );

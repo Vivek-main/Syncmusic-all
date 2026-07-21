@@ -515,9 +515,6 @@ export function useYouTubePlayer({
         selectedQualityRef.current = quality;
         if (playerRef.current) {
             const player = playerRef.current as any;
-            const curTime = player.getCurrentTime?.() || 0;
-            const vId = videoIdRef.current;
-
             if (typeof player.setPlaybackQuality === 'function') {
                 player.setPlaybackQuality(quality);
             }
@@ -528,16 +525,7 @@ export function useYouTubePlayer({
                 player.setPlaybackQualityRange(quality, quality);
             }
 
-            // Force stream reload at requested resolution
-            if (vId && typeof player.loadVideoById === 'function') {
-                player.loadVideoById({
-                    videoId: vId,
-                    startSeconds: curTime,
-                    suggestedQuality: quality,
-                });
-            }
-
-            const qualityLabel = quality === 'auto' ? 'Auto' : quality.replace('hd', '').replace('large', '480p').replace('medium', '360p').replace('small', '240p').replace('tiny', '144p');
+            const qualityLabel = quality === 'auto' || quality === 'default' ? 'Auto' : quality.replace('hd', '').replace('large', '480p').replace('medium', '360p').replace('small', '240p').replace('tiny', '144p');
             toast.success(`Video quality set to ${qualityLabel}`);
         }
     }, []);
