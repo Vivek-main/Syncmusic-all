@@ -189,6 +189,64 @@ function initializeSocket(io) {
             });
         });
 
+        // Live DJ Soundboard trigger
+        socket.on('send-soundboard', ({ roomId, effect }) => {
+            const room = roomManager.getRoom(roomId);
+            if (!room || !effect) return;
+
+            io.to(roomId).emit('room-soundboard', {
+                effect,
+                userId: socket.id,
+                timestamp: Date.now()
+            });
+        });
+
+        // Vote to Skip handler (Democracy Control)
+        socket.on('vote-skip', ({ roomId }) => {
+            const room = roomManager.getRoom(roomId);
+            if (!room) return;
+
+            if (!room.skipVotes) {
+                room.skipVotes = new Set();
+            }
+
+            if (room.skipVotes.has(socket.id)) {
+                room.skipVotes.delete(socket.id);
+            } else {
+                room.skipVotes.add(socket.id);
+            }
+
+            const totalUsers = room.users.length;
+            const requiredVotes = Math.ceil(totalUsers * 0.5);
+            const currentVotes = room.skipVotes.size;
+
+            io.to(roomId).emit('skip-votes-updated', {
+                votes: currentVotes,
+                required: requiredVotes,
+                userVoted: room.skipVotes.has(socket.id)
+            });
+
+            // Auto-skip if threshold reached
+            if (currentVotes >= requiredVotes && room.queue.length > 0) {
+                room.skipVotes.clear();
+                const nextVideo = room.queue.shift();
+                roomManager.updateRoomState(roomId, {
+                    videoId: nextVideo.videoId,
+                    videoTitle: nextVideo.title || null,
+                    playing: true,
+                    currentTime: 0,
+                });
+                io.to(roomId).emit('change-video', {
+                    videoId: nextVideo.videoId,
+                    videoTitle: nextVideo.title || null,
+                    serverTime: Date.now(),
+                });
+                io.to(roomId).emit('queue-updated', { queue: room.queue });
+                io.to(roomId).emit('skip-votes-updated', { votes: 0, required: requiredVotes, userVoted: false });
+                console.log(`[Queue] Vote skip threshold met in room ${roomId}`);
+            }
+        });
+
         // ─── Latency / Connection Health ──────────────────────────────────────────────────────
 
         socket.on('grant-control', ({ roomId, userId }) => {

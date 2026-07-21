@@ -29,9 +29,9 @@ export const UserList: React.FC<UserListProps> = ({
 }) => {
     return (
         <div className="glass-card p-4">
-            <h3 className="text-slate-900 font-semibold mb-3 flex items-center gap-2">
-                <Users className="w-4 h-4 text-slate-500" /> Connected Users
-                <span className="ml-auto text-xs text-slate-600 font-medium bg-slate-100 px-2 py-1 rounded-full border border-slate-200">
+            <h3 className="text-slate-900 dark:text-white font-semibold mb-3 flex items-center gap-2">
+                <Users className="w-4 h-4 text-slate-500 dark:text-slate-400" /> Connected Users
+                <span className="ml-auto text-xs text-slate-600 dark:text-slate-300 font-medium bg-slate-100 dark:bg-dark-700 px-2 py-1 rounded-full border border-slate-200 dark:border-slate-600">
                     {users.length} online
                 </span>
             </h3>
@@ -83,15 +83,15 @@ const UserListItem: React.FC<UserListItemProps> = ({
     onRevokeControl,
 }) => {
     const latencyColor =
-        user.latency < 50 ? 'text-green-600' :
-            user.latency < 150 ? 'text-yellow-600' :
-                'text-red-600';
+        user.latency < 50 ? 'text-green-600 dark:text-green-400' :
+            user.latency < 150 ? 'text-yellow-600 dark:text-yellow-400' :
+                'text-red-600 dark:text-red-400';
 
     return (
         <div
             className={cn(
                 'flex flex-col gap-2 px-3 py-2 rounded-xl transition-all border',
-                isCurrentUser ? 'bg-primary-50 border-primary-200 shadow-sm' : 'bg-slate-50 hover:bg-slate-100 border-slate-200'
+                isCurrentUser ? 'bg-primary-50 dark:bg-primary-900/30 border-primary-200 dark:border-primary-700 shadow-sm' : 'bg-slate-50 dark:bg-dark-800 hover:bg-slate-100 dark:hover:bg-dark-700 border-slate-200 dark:border-dark-700'
             )}
         >
             <div className="flex items-center gap-3">
@@ -108,7 +108,7 @@ const UserListItem: React.FC<UserListItemProps> = ({
             {/* Name & Role */}
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                    <span className="text-slate-900 text-sm font-semibold truncate">
+                    <span className="text-slate-900 dark:text-white text-sm font-semibold truncate">
                         {user.username}
                     </span>
                     {isCurrentUser && (

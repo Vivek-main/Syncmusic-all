@@ -148,6 +148,45 @@ app.get('/api/playlist', async (req, res) => {
     }
 });
 
+// Fetch Synced Karaoke Lyrics via LRCLIB API
+app.get('/api/lyrics', async (req, res) => {
+    try {
+        const query = req.query.q;
+        if (!query || typeof query !== 'string') {
+            return res.status(400).json({ error: 'Song title is required' });
+        }
+
+        // Clean up title (remove (Official Video), lyrics, ft, etc.)
+        const cleanTitle = query
+            .replace(/\(official video\)/gi, '')
+            .replace(/official music video/gi, '')
+            .replace(/\(lyrics\)/gi, '')
+            .replace(/\[.*\]/g, '')
+            .trim();
+
+        const searchUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(cleanTitle)}`;
+        const response = await fetch(searchUrl);
+        if (!response.ok) throw new Error('Failed to fetch from LRCLIB');
+
+        const results = await response.json();
+        if (Array.isArray(results) && results.length > 0) {
+            // Find item with syncedLyrics
+            const synced = results.find(item => item.syncedLyrics) || results[0];
+            return res.json({
+                trackName: synced.trackName || cleanTitle,
+                artistName: synced.artistName || 'Unknown Artist',
+                plainLyrics: synced.plainLyrics || null,
+                syncedLyrics: synced.syncedLyrics || null
+            });
+        }
+
+        res.status(404).json({ error: 'Lyrics not found' });
+    } catch (err) {
+        console.error('[Lyrics] error:', err);
+        res.status(500).json({ error: 'Failed to fetch lyrics' });
+    }
+});
+
 // Fast autocomplete suggestions via Google API
 app.get('/api/suggestions', async (req, res) => {
     try {

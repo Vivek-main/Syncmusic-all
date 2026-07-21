@@ -16,6 +16,8 @@ import { SuggestedVideos } from '@/components/SuggestedVideos';
 import { VideoQueue } from '@/components/VideoQueue';
 import { ChatBox } from '@/components/ChatBox';
 import { ReactionsOverlay } from '@/components/ReactionsOverlay';
+import { DJSoundboard } from '@/components/DJSoundboard';
+import { LyricsDisplay } from '@/components/LyricsDisplay';
 import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
 import toast from 'react-hot-toast';
 import { Crown, SlidersHorizontal, Headphones, Radio, PictureInPicture2, Maximize2 } from 'lucide-react';
@@ -246,6 +248,12 @@ export const RoomPage: React.FC<RoomPageProps> = ({
                             roomId={room.id}
                         />
 
+                        {/* Live DJ Soundboard */}
+                        <DJSoundboard socket={socket} roomId={room.id} />
+
+                        {/* Karaoke Synced Lyrics */}
+                        <LyricsDisplay videoTitle={videoTitle} currentTime={currentTime} />
+
                         {/* Suggested Videos (Only visible to hosts/co-hosts) */}
                         <SuggestedVideos
                             currentVideoId={videoId}
@@ -304,30 +312,30 @@ export const RoomPage: React.FC<RoomPageProps> = ({
 
                         {/* Sync Status Details */}
                         <div className="glass-card p-4">
-                            <h3 className="text-slate-900 font-semibold mb-3 text-sm flex items-center gap-2">
-                                <Radio className="w-4 h-4 text-slate-500" /> Sync Status
+                            <h3 className="text-slate-900 dark:text-white font-semibold mb-3 text-sm flex items-center gap-2">
+                                <Radio className="w-4 h-4 text-slate-500 dark:text-slate-400" /> Sync Status
                             </h3>
                             <div className="space-y-2">
                                 <StatusRow
                                     label="Connection"
                                     value={connectionStatus === 'connected' ? 'Online' : connectionStatus}
-                                    color={connectionStatus === 'connected' ? 'text-green-600' : 'text-red-600'}
+                                    color={connectionStatus === 'connected' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}
                                 />
                                 <StatusRow
                                     label="Latency"
                                     value={latency > 0 ? `${latency}ms` : 'Measuring...'}
                                     color={
-                                        latency < 50 ? 'text-green-600' :
-                                            latency < 150 ? 'text-yellow-600' : 'text-red-600'
+                                        latency < 50 ? 'text-green-600 dark:text-green-400' :
+                                            latency < 150 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'
                                     }
                                 />
                                 <StatusRow
                                     label="Playback"
                                     value={syncStatus === 'idle' ? 'No video' : syncStatus}
                                     color={
-                                        syncStatus === 'synced' ? 'text-green-600' :
-                                            syncStatus === 'syncing' ? 'text-yellow-600' :
-                                                'text-slate-500'
+                                        syncStatus === 'synced' ? 'text-green-600 dark:text-green-400' :
+                                            syncStatus === 'syncing' ? 'text-yellow-600 dark:text-yellow-400' :
+                                                'text-slate-500 dark:text-slate-400'
                                     }
                                 />
                                 <StatusRow
@@ -338,19 +346,19 @@ export const RoomPage: React.FC<RoomPageProps> = ({
                                             {isHost ? 'Host' : canControl ? 'Co-Host' : 'Listener'}
                                         </div>
                                     }
-                                    color={isHost ? 'text-yellow-600' : canControl ? 'text-secondary-600' : 'text-primary-600'}
+                                    color={isHost ? 'text-yellow-600 dark:text-yellow-400' : canControl ? 'text-secondary-600 dark:text-secondary-400' : 'text-primary-600 dark:text-primary-400'}
                                 />
                             </div>
                             
-                                <div className="mt-3 pt-3 border-t border-slate-100">
+                                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-dark-700">
                                     <div className="flex justify-between items-center mb-2">
-                                        <span className="text-slate-500 text-xs font-medium">Fine Tune Audio</span>
-                                        <span className="text-xs font-semibold text-slate-700">{manualOffsetMs > 0 ? '+' : ''}{manualOffsetMs}ms</span>
+                                        <span className="text-slate-500 dark:text-slate-400 text-xs font-medium">Fine Tune Audio</span>
+                                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{manualOffsetMs > 0 ? '+' : ''}{manualOffsetMs}ms</span>
                                     </div>
                                     <div className="flex gap-1.5">
-                                        <button onClick={() => setManualOffsetMs(m => m - 20)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-1.5 rounded transition-colors">-20ms</button>
-                                        <button onClick={() => setManualOffsetMs(0)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-2.5 rounded transition-colors" title="Reset">⟲</button>
-                                        <button onClick={() => setManualOffsetMs(m => m + 20)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-1.5 rounded transition-colors">+20ms</button>
+                                        <button onClick={() => setManualOffsetMs(m => m - 20)} className="flex-1 bg-slate-100 dark:bg-dark-700 hover:bg-slate-200 dark:hover:bg-dark-600 text-slate-700 dark:text-slate-200 text-xs py-1.5 rounded transition-colors">-20ms</button>
+                                        <button onClick={() => setManualOffsetMs(0)} className="bg-slate-100 dark:bg-dark-700 hover:bg-slate-200 dark:hover:bg-dark-600 text-slate-700 dark:text-slate-200 text-xs px-2.5 rounded transition-colors" title="Reset">⟲</button>
+                                        <button onClick={() => setManualOffsetMs(m => m + 20)} className="flex-1 bg-slate-100 dark:bg-dark-700 hover:bg-slate-200 dark:hover:bg-dark-600 text-slate-700 dark:text-slate-200 text-xs py-1.5 rounded transition-colors">+20ms</button>
                                     </div>
                                 </div>
                         </div>
@@ -376,8 +384,8 @@ interface StatusRowProps {
 }
 
 const StatusRow: React.FC<StatusRowProps> = ({ label, value, color }) => (
-    <div className="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-0">
-        <span className="text-slate-500 text-xs font-medium">{label}</span>
+    <div className="flex justify-between items-center py-1.5 border-b border-slate-100 dark:border-dark-700 last:border-0">
+        <span className="text-slate-500 dark:text-slate-400 text-xs font-medium">{label}</span>
         <span className={`text-xs font-semibold capitalize ${color}`}>{value}</span>
     </div>
 );

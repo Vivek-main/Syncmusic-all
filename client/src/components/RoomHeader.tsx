@@ -55,21 +55,20 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
 
     const status = statusConfig[connectionStatus];
 
-    const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-        return (localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
+    const [isDark, setIsDark] = useState<boolean>(() => {
+        return document.documentElement.classList.contains('dark');
     });
 
-    React.useEffect(() => {
-        if (theme === 'dark') {
+    const toggleTheme = () => {
+        const nextDark = !isDark;
+        setIsDark(nextDark);
+        if (nextDark) {
             document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
         } else {
             document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
         }
-        localStorage.setItem('theme', theme);
-    }, [theme]);
-
-    const toggleTheme = () => {
-        setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
     };
 
     return (
@@ -100,9 +99,9 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
                     <button
                         onClick={toggleTheme}
                         className="text-xs bg-slate-100 dark:bg-dark-700 hover:bg-slate-200 dark:hover:bg-dark-600 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 font-medium border border-slate-200 dark:border-slate-700"
-                        title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                        title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
                     >
-                        {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+                        {isDark ? '☀️ Light' : '🌙 Dark'}
                     </button>
 
                     {/* Connection Status */}

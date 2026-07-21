@@ -55,7 +55,32 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
 }) => {
     const [localVolume, setLocalVolume] = useState(100);
     const [selectedQuality, setSelectedQuality] = useState('auto');
+    const [audioFx, setAudioFx] = useState('normal');
+    const [skipVotes, setSkipVotes] = useState({ votes: 0, required: 1, userVoted: false });
     const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+    // Listen to vote skip updates
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleSkipVotesUpdated = (data: { votes: number; required: number; userVoted?: boolean }) => {
+            setSkipVotes(prev => ({
+                votes: data.votes,
+                required: data.required,
+                userVoted: data.userVoted !== undefined ? data.userVoted : prev.userVoted
+            }));
+        };
+
+        socket.on('skip-votes-updated', handleSkipVotesUpdated);
+        return () => {
+            socket.off('skip-votes-updated', handleSkipVotesUpdated);
+        };
+    }, [socket]);
+
+    const handleVoteSkip = () => {
+        if (!socket || !roomId) return;
+        socket.emit('vote-skip', { roomId });
+    };
 
     // ─── Global Keyboard Hotkeys ──────────────────────────────────────────────
     useEffect(() => {
@@ -150,7 +175,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
             {/* Controls Bar */}
             <div className="flex items-center justify-between flex-wrap gap-3">
                 
-                {/* Left: Playback State, Volume & Quality */}
+                {/* Left: Playback State, Volume, Quality & Audio FX */}
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
                         {isHost ? (
@@ -203,6 +228,21 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
                             </select>
                         </div>
                     )}
+
+                    {/* Audio FX Presets */}
+                    <div className="hidden md:flex items-center gap-1 bg-slate-100 dark:bg-dark-700/60 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-xs">
+                        <span className="text-slate-500 font-medium">EQ:</span>
+                        <select
+                            value={audioFx}
+                            onChange={(e) => setAudioFx(e.target.value)}
+                            className="bg-transparent text-slate-700 dark:text-slate-200 font-medium focus:outline-none cursor-pointer text-xs"
+                        >
+                            <option value="normal" className="dark:bg-dark-800 text-slate-900 dark:text-white">Normal</option>
+                            <option value="bass" className="dark:bg-dark-800 text-slate-900 dark:text-white">Bass Boost</option>
+                            <option value="vocal" className="dark:bg-dark-800 text-slate-900 dark:text-white">Vocal Boost</option>
+                            <option value="concert" className="dark:bg-dark-800 text-slate-900 dark:text-white">Concert Reverb</option>
+                        </select>
+                    </div>
                 </div>
 
                 {/* Center: Reactions */}
@@ -221,6 +261,20 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
 
                 {/* Right: Actions */}
                 <div className="flex items-center gap-2">
+                    {/* Democracy Vote to Skip */}
+                    <button
+                        onClick={handleVoteSkip}
+                        className={cn(
+                            'text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 font-medium shadow-sm border',
+                            skipVotes.userVoted
+                                ? 'bg-primary-500 text-white border-primary-600 shadow-md'
+                                : 'bg-slate-100 dark:bg-dark-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-dark-600 border-slate-200 dark:border-slate-700'
+                        )}
+                        title="Vote to skip current song"
+                    >
+                        🗳️ Vote Skip ({skipVotes.votes}/{skipVotes.required})
+                    </button>
+
                     {!isHost && (
                         <button
                             onClick={onRequestSync}
