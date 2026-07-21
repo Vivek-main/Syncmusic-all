@@ -133,7 +133,7 @@ export function useYouTubePlayer({
                         },
                         onStateChange: (event) => {
                             if (!isMounted) return;
-                            handlePlayerStateChange(event.data, event.target);
+                            handlePlayerStateChange(event.data);
                         },
                         onError: (event) => {
                             console.error('[YouTube] Player error:', event.data);
@@ -174,8 +174,7 @@ export function useYouTubePlayer({
      * Client: update local state (don't broadcast)
      */
     const handlePlayerStateChange = useCallback(
-        (state: YTPlayerState, player: YouTubePlayerInstance) => {
-            const currentVideoTime = player.getCurrentTime?.() || 0;
+        (state: YTPlayerState) => {
             const isCurrentlyControlling = canControlRef.current;
             const currentRoomId = roomIdRef.current;
 
@@ -185,18 +184,11 @@ export function useYouTubePlayer({
                 case YTPlayerState.PLAYING:
                     setPlaying(true);
                     playingRef.current = true;
-                    // Only emit if this state change wasn't triggered by a recent remote command
-                    if (isCurrentlyControlling && (Date.now() - lastRemoteActionTimeRef.current > 1000)) {
-                        socket.emit('play', { roomId: currentRoomId, currentTime: currentVideoTime + manualOffsetRef.current });
-                    }
                     break;
 
                 case YTPlayerState.PAUSED:
                     setPlaying(false);
                     playingRef.current = false;
-                    if (isCurrentlyControlling && (Date.now() - lastRemoteActionTimeRef.current > 1000)) {
-                        socket.emit('pause', { roomId: currentRoomId, currentTime: currentVideoTime + manualOffsetRef.current });
-                    }
                     break;
 
                 case YTPlayerState.ENDED:
@@ -534,13 +526,27 @@ export function useYouTubePlayer({
     const togglePlay = useCallback(() => {
         if (!canControlRef.current) return;
         if (playerRef.current) {
+            const currentVideoTime = playerRef.current.getCurrentTime?.() || 0;
+            const targetTime = currentVideoTime + manualOffsetRef.current;
+            const currentRoomId = roomIdRef.current;
+
             if (playing) {
                 playerRef.current.pauseVideo();
+                setPlaying(false);
+                playingRef.current = false;
+                if (socket && currentRoomId) {
+                    socket.emit('pause', { roomId: currentRoomId, currentTime: targetTime });
+                }
             } else {
                 playerRef.current.playVideo();
+                setPlaying(true);
+                playingRef.current = true;
+                if (socket && currentRoomId) {
+                    socket.emit('play', { roomId: currentRoomId, currentTime: targetTime });
+                }
             }
         }
-    }, [playing]);
+    }, [playing, socket]);
 
     // ─── Web MediaSession API for Background Play & Lockscreen Controls ──────────
     useEffect(() => {
