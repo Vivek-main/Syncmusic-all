@@ -64,9 +64,11 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
         setIsDark(nextDark);
         if (nextDark) {
             document.documentElement.classList.add('dark');
+            document.body.classList.add('dark');
             localStorage.setItem('theme', 'dark');
         } else {
             document.documentElement.classList.remove('dark');
+            document.body.classList.remove('dark');
             localStorage.setItem('theme', 'light');
         }
     };
@@ -77,7 +79,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
                 {/* Room Code */}
                 <div className="flex items-center gap-3">
                     <div>
-                        <p className="text-slate-500 text-xs font-medium">Room Code</p>
+                        <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">Room Code</p>
                         <div className="flex items-center gap-2">
                             <span className="text-slate-900 dark:text-white font-bold text-2xl font-mono tracking-widest drop-shadow-sm">
                                 {roomId}
