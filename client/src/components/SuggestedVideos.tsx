@@ -53,9 +53,8 @@ export const SuggestedVideos: React.FC<SuggestedVideosProps> = ({
                 
                 const data = await res.json();
                 if (data.results && data.results.length > 0) {
-                    // Filter out the currently playing video
                     const filtered = data.results.filter((v: SearchResult) => v.videoId !== currentVideoId);
-                    setSuggestions(filtered.slice(0, 4)); // Show top 4 suggestions
+                    setSuggestions(filtered.slice(0, 20)); // Show up to 20 suggestions
                 }
             } catch (err) {
                 console.error('Failed to fetch suggestions:', err);
@@ -65,7 +64,7 @@ export const SuggestedVideos: React.FC<SuggestedVideosProps> = ({
         };
 
         // Add a small delay so we don't spam the API immediately when typing or changing fast
-        const timeout = setTimeout(fetchSuggestions, 1000);
+        const timeout = setTimeout(fetchSuggestions, 800);
         return () => clearTimeout(timeout);
     }, [currentVideoId, currentVideoTitle]);
 
@@ -92,11 +91,13 @@ export const SuggestedVideos: React.FC<SuggestedVideosProps> = ({
 
     return (
         <div className="glass-card p-4 mt-4">
-            <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-                Suggested Videos
-            </h3>
+            <div className="flex justify-between items-center mb-3">
+                <h3 className="text-slate-900 dark:text-white font-semibold flex items-center gap-2">
+                    Mini YouTube Recommendations ({suggestions.length})
+                </h3>
+            </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-96 overflow-y-auto pr-1 scrollbar-thin">
                 {suggestions.map((video) => (
                     <div 
                         key={video.videoId}
@@ -104,7 +105,7 @@ export const SuggestedVideos: React.FC<SuggestedVideosProps> = ({
                             onVideoSelect(video.videoId, video.title);
                             toast.success('Video loaded!', { icon: <Play className="w-4 h-4 text-green-500" /> });
                         }}
-                        className="group flex flex-col gap-2 cursor-pointer hover:bg-slate-800/50 p-2 rounded-xl transition-all duration-200"
+                        className="group flex flex-col gap-2 cursor-pointer bg-slate-50 dark:bg-dark-800 hover:bg-slate-100 dark:hover:bg-dark-700 p-2.5 rounded-xl border border-slate-100 dark:border-dark-700 transition-all duration-200"
                     >
                         <div className="relative aspect-video rounded-lg overflow-hidden bg-black">
                             <img 
@@ -123,7 +124,7 @@ export const SuggestedVideos: React.FC<SuggestedVideosProps> = ({
                         </div>
                         <div>
                             <div className="flex justify-between items-start gap-2">
-                                <h4 className="text-sm font-medium text-white line-clamp-2 leading-snug group-hover:text-primary-400 transition-colors flex-1">
+                                <h4 className="text-sm font-medium text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors flex-1">
                                     {video.title}
                                 </h4>
                                 <button
@@ -132,13 +133,13 @@ export const SuggestedVideos: React.FC<SuggestedVideosProps> = ({
                                         onAddToQueue(video);
                                         toast.success('Added to queue!', { icon: <Plus className="w-4 h-4 text-primary-500" /> });
                                     }}
-                                    className="p-1.5 h-fit bg-primary-500/10 text-primary-400 hover:bg-primary-500 hover:text-white rounded transition-colors opacity-0 group-hover:opacity-100"
+                                    className="p-1.5 h-fit bg-primary-500/10 text-primary-600 dark:text-primary-400 hover:bg-primary-500 hover:text-white rounded transition-colors opacity-80 group-hover:opacity-100"
                                     title="Add to Queue"
                                 >
                                     <Plus className="w-4 h-4" />
                                 </button>
                             </div>
-                            <p className="text-xs text-slate-400 mt-1">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                                 {video.author}
                             </p>
                         </div>

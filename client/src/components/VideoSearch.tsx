@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { extractVideoId } from '@/services/youtube';
-import { Gamepad2, Search, AlertTriangle, Play, Plus } from 'lucide-react';
+import { extractVideoId, extractPlaylistId } from '@/services/youtube';
+import { Gamepad2, Search, AlertTriangle, Play, Plus, ListMusic } from 'lucide-react';
 
 interface SearchResult {
     videoId: string;
@@ -29,10 +29,12 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
     const [error, setError] = useState('');
     const [results, setResults] = useState<SearchResult[]>([]);
     const [suggestions, setSuggestions] = useState<string[]>([]);
+    const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState<number>(-1);
 
     const performSearch = async (searchQuery: string) => {
         const trimmed = searchQuery.trim();
         setSuggestions([]); // Clear suggestions when searching
+        setSelectedSuggestionIndex(-1);
 
         if (!trimmed) {
             setResults([]);
@@ -40,9 +42,10 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
             return;
         }
 
-        // Don't auto-search if it's a URL (let them press enter to load it)
+        // Don't auto-search if it's a URL
         const directVideoId = extractVideoId(trimmed);
-        if (directVideoId) return;
+        const playlistId = extractPlaylistId(trimmed);
+        if (directVideoId || playlistId) return;
 
         setIsLoading(true);
         setError('');
@@ -72,7 +75,7 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
     useEffect(() => {
         const timer = setTimeout(async () => {
             const trimmed = query.trim();
-            if (trimmed && !extractVideoId(trimmed)) {
+            if (trimmed && !extractVideoId(trimmed) && !extractPlaylistId(trimmed)) {
                 try {
                     const localBackendUrl = `${window.location.protocol}//${window.location.hostname}:3001`;
                     const API_URL = import.meta.env.VITE_SOCKET_URL || localBackendUrl;
@@ -80,14 +83,16 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
                     if (res.ok) {
                         const data = await res.json();
                         setSuggestions(data.suggestions || []);
+                        setSelectedSuggestionIndex(-1);
                     }
                 } catch (err) {
                     console.error('Failed to fetch suggestions', err);
                 }
             } else {
                 setSuggestions([]);
+                setSelectedSuggestionIndex(-1);
             }
-        }, 250); // Fast 250ms debounce for text autocomplete
+        }, 200); // Fast 200ms debounce for text autocomplete
 
         return () => clearTimeout(timer);
     }, [query]);
@@ -95,7 +100,29 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
     const handleSuggestionClick = (suggestion: string) => {
         setQuery(suggestion);
         setSuggestions([]);
+        setSelectedSuggestionIndex(-1);
         performSearch(suggestion);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (suggestions.length === 0) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setSelectedSuggestionIndex(prev => (prev < suggestions.length - 1 ? prev + 1 : 0));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setSelectedSuggestionIndex(prev => (prev > 0 ? prev - 1 : suggestions.length - 1));
+        } else if (e.key === 'Enter' && selectedSuggestionIndex >= 0) {
+            e.preventDefault();
+            const selected = suggestions[selectedSuggestionIndex];
+            if (selected) {
+                handleSuggestionClick(selected);
+            }
+        } else if (e.key === 'Escape') {
+            setSuggestions([]);
+            setSelectedSuggestionIndex(-1);
+        }
     };
 
     const handleSubmit = async (e?: React.FormEvent) => {
@@ -105,11 +132,50 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
         const trimmed = query.trim();
         if (!trimmed) return;
 
+        // 1. Handle YouTube Playlist URL
+        const playlistId = extractPlaylistId(trimmed);
+        if (playlistId) {
+            setIsLoading(true);
+            try {
+                const localBackendUrl = `${window.location.protocol}//${window.location.hostname}:3001`;
+                const API_URL = import.meta.env.VITE_SOCKET_URL || localBackendUrl;
+                const res = await fetch(`${API_URL}/api/playlist?list=${encodeURIComponent(playlistId)}`);
+                if (!res.ok) throw new Error('Playlist load failed');
+
+                const data = await res.json();
+                if (data.videos && data.videos.length > 0) {
+                    // Play the first video if no video is currently playing
+                    if (!currentVideoId) {
+                        onVideoSelect(data.videos[0].videoId, data.videos[0].title);
+                        // Add the rest to queue
+                        data.videos.slice(1).forEach((v: SearchResult) => onAddToQueue(v));
+                    } else {
+                        // Add all to queue
+                        data.videos.forEach((v: SearchResult) => onAddToQueue(v));
+                    }
+
+                    setQuery('');
+                    setResults([]);
+                    toast.success(`Loaded playlist: ${data.videos.length} videos added!`, {
+                        icon: <ListMusic className="w-4 h-4 text-primary-500" />
+                    });
+                } else {
+                    setError('Playlist is empty or unavailable');
+                }
+            } catch (err) {
+                console.error(err);
+                setError('Failed to load playlist. Please check the URL.');
+            } finally {
+                setIsLoading(false);
+            }
+            return;
+        }
+
+        // 2. Handle Direct YouTube Video URL
         const directVideoId = extractVideoId(trimmed);
         if (directVideoId) {
             setIsLoading(true);
             try {
-                // Fetch video title from YouTube oEmbed API
                 const oEmbedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${directVideoId}&format=json`;
                 let title = `YouTube Video (${directVideoId})`;
                 try {
@@ -133,7 +199,7 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
             return;
         }
 
-        // If not a URL, explicitly trigger search immediately
+        // 3. Trigger regular video search
         performSearch(query);
     };
 
@@ -179,8 +245,9 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
                             setQuery(e.target.value);
                             setError('');
                         }}
-                        placeholder="Search for videos or paste a URL..."
-                        className="w-full bg-white/80 border border-slate-200 rounded-lg px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-sm pr-24 transition-all shadow-sm focus:bg-white"
+                        onKeyDown={handleKeyDown}
+                        placeholder="Search videos, paste YouTube link or Playlist URL..."
+                        className="w-full bg-white/80 dark:bg-dark-700/80 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-sm pr-24 transition-all shadow-sm focus:bg-white dark:focus:bg-dark-700"
                         disabled={isLoading}
                     />
                     <button
@@ -206,15 +273,19 @@ export const VideoSearch: React.FC<VideoSearchProps> = ({
             </form>
 
             {suggestions.length > 0 && results.length === 0 && (
-                <div className="mt-2 space-y-1">
+                <div className="mt-2 space-y-1 max-h-60 overflow-y-auto">
                     {suggestions.map((suggestion, index) => (
                         <button
                             key={index}
                             onClick={() => handleSuggestionClick(suggestion)}
-                            className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 transition-colors text-left bg-white border border-slate-100 shadow-sm"
+                            className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors text-left border text-sm font-medium ${
+                                index === selectedSuggestionIndex
+                                    ? 'bg-primary-50 border-primary-300 text-primary-900 dark:bg-primary-900/30 dark:border-primary-600 dark:text-primary-200'
+                                    : 'bg-white hover:bg-slate-50 border-slate-100 text-slate-700 dark:bg-dark-800 dark:hover:bg-dark-700 dark:border-dark-700 dark:text-slate-200'
+                            }`}
                         >
                             <Search className="w-3.5 h-3.5 text-slate-400" />
-                            <span className="text-sm text-slate-700 font-medium">{suggestion}</span>
+                            <span>{suggestion}</span>
                         </button>
                     ))}
                 </div>

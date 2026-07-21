@@ -17,6 +17,7 @@ import { VideoQueue } from '@/components/VideoQueue';
 import { ChatBox } from '@/components/ChatBox';
 import { ReactionsOverlay } from '@/components/ReactionsOverlay';
 import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
+import toast from 'react-hot-toast';
 import { Crown, SlidersHorizontal, Headphones, Radio, PictureInPicture2, Maximize2 } from 'lucide-react';
 
 const PLAYER_CONTAINER_ID = 'youtube-player';
@@ -48,7 +49,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({
 }) => {
     const [audioOnly, setAudioOnly] = React.useState(false);
     const [isPiP, setIsPiP] = React.useState(false);
-    const [manualOffsetMs, setManualOffsetMs] = React.useState(0);
+    const [manualOffsetMs, setManualOffsetMs] = React.useState(isHost ? 220 : 0);
 
     const canControl = isHost || (room.controllers && room.controllers.includes(currentUserId));
 
@@ -63,6 +64,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({
         loadVideo,
         requestSync,
         setVolume,
+        setQuality,
         seekTo,
         togglePlay,
     } = useYouTubePlayer({
@@ -77,6 +79,32 @@ export const RoomPage: React.FC<RoomPageProps> = ({
         initialVideoId: room.videoId,
         initialVideoTitle: room.videoTitle,
     });
+
+    // ─── Sync Popup Notifications ─────────────────────────────────────────────
+    const prevVideoIdRef = React.useRef(videoId);
+    const prevPlayingRef = React.useRef(playing);
+
+    React.useEffect(() => {
+        if (videoId && videoId !== prevVideoIdRef.current) {
+            toast('Music will sync in 7 seconds ⏱️', {
+                icon: '🎵',
+                duration: 4000,
+                style: { borderRadius: '12px', background: '#1e293b', color: '#fff' }
+            });
+            prevVideoIdRef.current = videoId;
+        }
+    }, [videoId]);
+
+    React.useEffect(() => {
+        if (playing && !prevPlayingRef.current) {
+            toast('Sync will be fixed in 5 seconds ⚡', {
+                icon: '⏳',
+                duration: 3500,
+                style: { borderRadius: '12px', background: '#1e293b', color: '#fff' }
+            });
+        }
+        prevPlayingRef.current = playing;
+    }, [playing]);
 
     const hostUser = room.users.find((u) => u.id === room.hostId);
 
@@ -211,6 +239,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({
                             syncStatus={syncStatus}
                             onRequestSync={requestSync}
                             setVolume={setVolume}
+                            setQuality={setQuality}
                             seekTo={seekTo}
                             togglePlay={togglePlay}
                             socket={socket}

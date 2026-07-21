@@ -55,6 +55,23 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
 
     const status = statusConfig[connectionStatus];
 
+    const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+        return (localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
+    });
+
+    React.useEffect(() => {
+        if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+        localStorage.setItem('theme', theme);
+    }, [theme]);
+
+    const toggleTheme = () => {
+        setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+    };
+
     return (
         <div className="glass-card p-4">
             <div className="flex flex-wrap items-center gap-3 justify-between">
@@ -63,7 +80,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
                     <div>
                         <p className="text-slate-500 text-xs font-medium">Room Code</p>
                         <div className="flex items-center gap-2">
-                            <span className="text-slate-900 font-bold text-2xl font-mono tracking-widest drop-shadow-sm">
+                            <span className="text-slate-900 dark:text-white font-bold text-2xl font-mono tracking-widest drop-shadow-sm">
                                 {roomId}
                             </span>
                             <button
@@ -79,6 +96,15 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
 
                 {/* Status & Actions */}
                 <div className="flex items-center gap-3 flex-wrap">
+                    {/* Theme Switcher Button */}
+                    <button
+                        onClick={toggleTheme}
+                        className="text-xs bg-slate-100 dark:bg-dark-700 hover:bg-slate-200 dark:hover:bg-dark-600 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 font-medium border border-slate-200 dark:border-slate-700"
+                        title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                    >
+                        {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+                    </button>
+
                     {/* Connection Status */}
                     <div className="flex items-center gap-1.5">
                         <div className={cn('w-2 h-2 rounded-full animate-pulse-slow', status.dot)} />
@@ -100,14 +126,14 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
                     )}
 
                     {/* User Count */}
-                    <div className="text-xs text-slate-600 font-medium flex items-center gap-1">
+                    <div className="text-xs text-slate-600 dark:text-slate-300 font-medium flex items-center gap-1">
                         <Users className="w-3.5 h-3.5" /> {userCount}
                     </div>
 
                     {/* QR Code Button */}
                     <button
                         onClick={() => setShowQR(!showQR)}
-                        className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 font-medium border border-slate-200"
+                        className="text-xs bg-slate-100 dark:bg-dark-700 hover:bg-slate-200 dark:hover:bg-dark-600 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 font-medium border border-slate-200 dark:border-slate-700"
                     >
                         <QrCode className="w-3.5 h-3.5" /> QR
                     </button>
@@ -115,7 +141,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
                     {/* Share Link */}
                     <button
                         onClick={copyJoinLink}
-                        className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 font-medium border border-slate-200"
+                        className="text-xs bg-slate-100 dark:bg-dark-700 hover:bg-slate-200 dark:hover:bg-dark-600 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 font-medium border border-slate-200 dark:border-slate-700"
                     >
                         <Link className="w-3.5 h-3.5" /> Share
                     </button>

@@ -50,6 +50,7 @@ interface UseYouTubePlayerReturn {
     loadVideo: (videoId: string, title?: string) => void;
     requestSync: () => void;
     setVolume: (volume: number) => void;
+    setQuality: (quality: string) => void;
     seekTo: (time: number) => void;
     togglePlay: () => void;
 }
@@ -509,6 +510,19 @@ export function useYouTubePlayer({
         }
     }, []);
 
+    const setQuality = useCallback((quality: string) => {
+        if (playerRef.current) {
+            const player = playerRef.current as any;
+            if (typeof player.setPlaybackQuality === 'function') {
+                player.setPlaybackQuality(quality);
+            }
+            if (typeof player.setSuggestedQuality === 'function') {
+                player.setSuggestedQuality(quality);
+            }
+            toast.success(`Video quality set to ${quality}`);
+        }
+    }, []);
+
     const seekTo = useCallback((time: number) => {
         if (!canControlRef.current) return;
         if (playerRef.current && playerRef.current.seekTo) {
@@ -528,6 +542,38 @@ export function useYouTubePlayer({
         }
     }, [playing]);
 
+    // ─── Web MediaSession API for Background Play & Lockscreen Controls ──────────
+    useEffect(() => {
+        if ('mediaSession' in navigator) {
+            if (videoTitle || videoId) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: videoTitle || 'SyncMusic Audio',
+                    artist: 'SyncMusic Room',
+                    album: 'SyncMusic Live',
+                    artwork: videoId ? [
+                        { src: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`, sizes: '480x360', type: 'image/jpeg' },
+                        { src: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`, sizes: '1280x720', type: 'image/jpeg' },
+                    ] : []
+                });
+            }
+
+            navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
+
+            try {
+                navigator.mediaSession.setActionHandler('play', () => {
+                    if (canControlRef.current) togglePlay();
+                    else playerRef.current?.playVideo();
+                });
+                navigator.mediaSession.setActionHandler('pause', () => {
+                    if (canControlRef.current) togglePlay();
+                    else playerRef.current?.pauseVideo();
+                });
+            } catch (err) {
+                console.warn('[MediaSession] Action handlers error', err);
+            }
+        }
+    }, [videoTitle, videoId, playing, togglePlay]);
+
     return {
         playerReady,
         videoId,
@@ -539,6 +585,7 @@ export function useYouTubePlayer({
         loadVideo,
         requestSync,
         setVolume,
+        setQuality,
         seekTo,
         togglePlay,
     };

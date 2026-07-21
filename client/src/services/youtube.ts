@@ -45,6 +45,30 @@ export function extractVideoId(input: string): string | null {
 }
 
 /**
+ * Extract YouTube Playlist ID from URL
+ * Supports:
+ * - https://www.youtube.com/playlist?list=PLAYLIST_ID
+ * - https://www.youtube.com/watch?v=VIDEO_ID&list=PLAYLIST_ID
+ */
+export function extractPlaylistId(input: string): string | null {
+    if (!input || typeof input !== 'string') return null;
+
+    const trimmed = input.trim();
+
+    // Plain Playlist ID (PL..., RD..., FL..., UU..., OL...)
+    if (/^(PL|RD|FL|UU|OL)[a-zA-Z0-9_-]+$/.test(trimmed)) {
+        return trimmed;
+    }
+
+    const match = trimmed.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) {
+        return match[1];
+    }
+
+    return null;
+}
+
+/**
  * Load the YouTube IFrame Player API script
  * Returns a promise that resolves when the API is ready
  */

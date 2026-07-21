@@ -80,7 +80,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
 
             {/* Sync Status Badge */}
             {videoId && playerReady && (
-                <div className="absolute top-3 right-3 z-30">
+                <div className="absolute top-3 right-3 z-30 pointer-events-none">
                     <SyncBadge status={syncStatus} />
                 </div>
             )}

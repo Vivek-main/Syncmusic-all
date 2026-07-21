@@ -66,7 +66,11 @@ app.get('/api/rooms/:roomId', (req, res) => {
     });
 });
 
-// Search YouTube videos via yt-search
+// Simple in-memory search cache (10 minute TTL)
+const searchCache = new Map();
+const SEARCH_CACHE_TTL = 10 * 60 * 1000;
+
+// Search YouTube videos via yt-search (cached)
 app.get('/api/search', async (req, res) => {
     try {
         const query = req.query.q;
@@ -74,6 +78,12 @@ app.get('/api/search', async (req, res) => {
             return res.status(400).json({ error: 'Search query is required' });
         }
         
+        const cacheKey = query.trim().toLowerCase();
+        const cached = searchCache.get(cacheKey);
+        if (cached && (Date.now() - cached.timestamp < SEARCH_CACHE_TTL)) {
+            return res.json({ results: cached.results });
+        }
+
         const ytSearch = require('yt-search');
         const results = await ytSearch(query);
         
@@ -86,21 +96,55 @@ app.get('/api/search', async (req, res) => {
         };
         
         // Filter out blocked channels. If it filters out EVERYTHING, fallback to original results
-        const safeVideos = results.videos.filter(v => !isLikelyBlocked(v.author.name));
-        const videosToUse = safeVideos.length > 0 ? safeVideos : results.videos;
+        const safeVideos = (results.videos || []).filter(v => !isLikelyBlocked(v.author ? v.author.name : ''));
+        const videosToUse = safeVideos.length > 0 ? safeVideos : (results.videos || []);
 
-        const videos = videosToUse.slice(0, 15).map(v => ({
+        const videos = videosToUse.slice(0, 25).map(v => ({
             videoId: v.videoId,
             title: v.title,
             thumbnail: v.thumbnail,
-            duration: v.timestamp,
-            author: v.author.name
+            duration: v.timestamp || (v.duration ? v.duration.toString() : '3:30'),
+            author: v.author ? v.author.name : 'YouTube'
         }));
         
+        searchCache.set(cacheKey, { timestamp: Date.now(), results: videos });
         res.json({ results: videos });
     } catch (err) {
         console.error('[Search] error:', err);
         res.status(500).json({ error: 'Failed to search YouTube' });
+    }
+});
+
+// Fetch videos from YouTube Playlist
+app.get('/api/playlist', async (req, res) => {
+    try {
+        const listId = req.query.list;
+        if (!listId || typeof listId !== 'string') {
+            return res.status(400).json({ error: 'Playlist ID is required' });
+        }
+
+        const ytSearch = require('yt-search');
+        const playlist = await ytSearch({ listId });
+
+        if (!playlist || !playlist.videos) {
+            return res.status(404).json({ error: 'Playlist not found or empty' });
+        }
+
+        const videos = playlist.videos.map(v => ({
+            videoId: v.videoId,
+            title: v.title,
+            thumbnail: v.thumbnail || `https://img.youtube.com/vi/${v.videoId}/hqdefault.jpg`,
+            duration: v.duration ? v.duration.toString() : '3:30',
+            author: v.author ? v.author.name : (playlist.author ? playlist.author.name : 'YouTube Playlist')
+        }));
+
+        res.json({
+            title: playlist.title || 'YouTube Playlist',
+            videos
+        });
+    } catch (err) {
+        console.error('[Playlist] error:', err);
+        res.status(500).json({ error: 'Failed to load YouTube playlist' });
     }
 });
 
