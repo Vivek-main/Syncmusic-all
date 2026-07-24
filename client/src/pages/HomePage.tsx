@@ -135,7 +135,6 @@ export const HomePage: React.FC<HomePageProps> = ({
                 <div className="mt-6">
                     <button
                         onClick={handleQuickJoin}
-                        disabled={publicRooms.length === 0}
                         className={`group relative inline-flex items-center gap-2.5 px-6 py-3 rounded-2xl font-semibold text-sm transition-all duration-300 ${
                             publicRooms.length > 0
                                 ? 'bg-gradient-to-r from-primary-600 to-secondary-500 text-white shadow-[0_4px_20px_rgba(139,92,246,0.35)] hover:shadow-[0_6px_28px_rgba(139,92,246,0.5)] hover:scale-105 cursor-pointer'
